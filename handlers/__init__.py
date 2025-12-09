@@ -21,7 +21,20 @@ from .consent import (
     cancel,
     FULL_NAME, PHONE, EMAIL, CONFIRM
 )
-from .admin import leads_handler, count_handler
+
+from .admin import (
+    albina_handler,
+    admin_ask_leads_callback,
+    admin_count_now_callback,
+    admin_export_csv_callback,
+    admin_upload_guide_callback,   # ← новое
+    process_leads_count,
+    receive_guide_file,            # ← новое
+    count_handler,
+    cancel as admin_cancel,        # ← чтобы не конфликтовало с consent.cancel
+    ASK_LEADS_COUNT,
+    AWAIT_GUIDE_FILE               # ← новое
+)
 
 __all__ = [
     "start_handler",
@@ -37,6 +50,11 @@ __all__ = [
     'consent_handler',
     'start_form_handler',
     'guide_handler',
-    'check_subscription_handler'
+    'check_subscription_handler',
+    'albina_handler', 'admin_ask_leads_callback',
+    'admin_count_now_callback', 'process_leads_count',
+    'ASK_LEADS_COUNT', 'admin_export_csv_callback',
+    'admin_upload_guide_callback', 'receive_guide_file',
+    'admin_cancel'
 ]
 
