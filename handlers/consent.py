@@ -95,9 +95,11 @@ async def consent_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
             data.get("email", ""),
             data.get("telegram_username", "")
         ])
-    
+    keyboard = [[InlineKeyboardButton("← Назад в меню", callback_data="back")]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
     await update.callback_query.message.reply_text(
-        "✅ Спасибо! Ваши данные сохранены. С вами скоро свяжутся для уточнения деталей."
+        "✅ Спасибо! Ваши данные сохранены. С вами скоро свяжутся для уточнения деталей.",
+        reply_markup=reply_markup  # ← вот что было пропущено!
     )
     return ConversationHandler.END
 
@@ -107,7 +109,11 @@ async def consent_restart(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return await consent_full_name(update, context)
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("❌ Форма отменена. Вы можете начать снова через меню.")
+    keyboard = [[InlineKeyboardButton("← Назад в меню", callback_data="back")]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text(
+        "❌ Форма отменена. Вы можете начать снова через меню.",
+        reply_markup=reply_markup)
     return ConversationHandler.END
 
 
