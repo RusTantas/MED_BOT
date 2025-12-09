@@ -28,7 +28,10 @@ if not os.path.exists(CSV_PATH):
 
 async def consent_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Начало формы: показываем текст согласия и кнопку «Начать»"""
-    keyboard = [[InlineKeyboardButton("✅ Начать заполнение", callback_data="consent_start")]]
+    keyboard = [[InlineKeyboardButton("✅ Начать заполнение", callback_data="consent_start")],
+                [InlineKeyboardButton("← Назад в меню", callback_data="back")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.callback_query.answer()
     await update.callback_query.message.reply_text(
