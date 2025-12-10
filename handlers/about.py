@@ -11,5 +11,5 @@ async def about_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     await query.edit_message_text(
         text=ABOUT_TEXT,
-        reply_markup=reply_markup
+        parse_mode='Markdown'  
     )
