@@ -2,3 +2,5 @@
 venv/
 storage/
 handlers/__pycache__/
+data/
+__pycache__/
