@@ -7,7 +7,12 @@ from .reviews import reviews_handler
 from .product import product_handler
 from .booking import booking_handler
 # from .consent import consent_handler, start_form_handler # Влада проверить
-from .guide import guide_handler, check_subscription_handler
+from .guide import (
+    guide_handler, 
+    check_subscription_handler, 
+    download_guide_handler,
+    show_guides_list
+)
 
 # Для согласия (ConversationHandler)
 from .consent import (

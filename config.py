@@ -94,3 +94,7 @@ WELCOME_MESSAGE = f"""
 
 MENU_MESSAGE = "📋 Главное меню:"
 BACK_BUTTON_TEXT = "⬅️ Назад в меню"
+
+CHANNEL_ID = "@dr_halimova_gulnaz"  # Канал для проверки подписки
+DATA_DIR = "./data"  # Папка с гайдами
+ALLOWED_EXTENSIONS = ['.pdf', '.txt', '.doc', '.docx', '.jpg', '.jpeg', '.png']

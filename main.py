@@ -39,7 +39,9 @@ from handlers import (
     product_handler,
     booking_handler,
     guide_handler,
-    check_subscription_handler
+    check_subscription_handler,
+    download_guide_handler,
+    show_guides_list
 )
 
 # --- Подавление предупреждения (оставим как есть) ---
@@ -112,6 +114,7 @@ def main():
     # Админ-команды
     app.add_handler(CommandHandler("albina", albina_handler))
     app.add_handler(CommandHandler("count", count_handler))  # можно вызывать и так
+    app.add_handler(CommandHandler("guides", show_guides_list))
 
     # Диалоги
     app.add_handler(consent_conv)
@@ -126,6 +129,7 @@ def main():
     app.add_handler(CallbackQueryHandler(booking_handler, pattern="^booking$"))
     app.add_handler(CallbackQueryHandler(guide_handler, pattern="^guide$"))
     app.add_handler(CallbackQueryHandler(check_subscription_handler, pattern="^check_subscription$"))
+    app.add_handler(CallbackQueryHandler(download_guide_handler, pattern="^download_.*$"))
 
     # Callback-кнопки админ-меню
     app.add_handler(CallbackQueryHandler(admin_count_now_callback, pattern="^admin_count_now$"))
