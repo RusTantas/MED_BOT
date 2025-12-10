@@ -3,89 +3,198 @@ import csv
 import os
 from datetime import datetime
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import (
-    ContextTypes,
-    ConversationHandler,
-    MessageHandler,
-    filters,
-    CallbackQueryHandler
-)
+from telegram.ext import ContextTypes, ConversationHandler
 
 from config import CONSENT_TEXT
 
-# Состояния диалога
+# Состояния
 FULL_NAME, PHONE, EMAIL, CONFIRM = range(4)
 
-# Путь к CSV
 CSV_PATH = "./storage/leads.csv"
 os.makedirs("./storage", exist_ok=True)
 
-# Создаём CSV с заголовком, если не существует
 if not os.path.exists(CSV_PATH):
     with open(CSV_PATH, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow(["timestamp", "full_name", "phone", "email", "telegram_username"])
 
+
+def get_back_button():
+    return [[InlineKeyboardButton("← Назад в меню", callback_data="back")]]
+
+
+# --- СТАРТ: показываем текст + кнопку "Начать" ---
 async def consent_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Начало формы: показываем текст согласия и кнопку «Начать»"""
-    keyboard = [[InlineKeyboardButton("✅ Начать заполнение", callback_data="consent_start")],
-                [InlineKeyboardButton("← Назад в меню", callback_data="back")]
+    query = update.callback_query
+    await query.answer()
+
+    keyboard = [
+        [InlineKeyboardButton("✅ Начать заполнение", callback_data="consent_start")],
+        [InlineKeyboardButton("← Назад в меню", callback_data="back")]
     ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.callback_query.answer()
-    await update.callback_query.message.reply_text(
-        CONSENT_TEXT,
-        reply_markup=reply_markup
+    await query.edit_message_text(
+        text=CONSENT_TEXT,
+        reply_markup=InlineKeyboardMarkup(keyboard)
     )
     return FULL_NAME
 
+
+# --- После нажатия "Начать" — задаём вопрос ФИО ---
 async def consent_full_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.callback_query.answer()
-    await update.callback_query.message.reply_text("🔤 Укажите, пожалуйста, ваше ФИО:")
+    query = update.callback_query
+    await query.answer()
+
+    # Отправляем НОВОЕ сообщение с вопросом (или редактируем текущее)
+    # Но лучше — редактируем текущее (оно и так есть)
+    keyboard = [[InlineKeyboardButton("← Назад в меню", callback_data="back")]]
+    await query.edit_message_text(
+        text="🔤 Укажите, пожалуйста, ваше ФИО:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+    # Сохраняем ID этого сообщения для последующих шагов
+    context.user_data["form_message_id"] = query.message.message_id
+    context.user_data["form_chat_id"] = query.message.chat_id
     return FULL_NAME
 
+
+# --- Получено ФИО → переходим к телефону, редактируя ТО ЖЕ сообщение ---
 async def full_name_received(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # 🔹 Сохраняем Telegram-логин пользователя (если есть)
+    # 📝 Сохраняем данные
     user = update.effective_user
-    username = user.username or ""
-    display_username = f"@{username}" if username else ""
-    context.user_data["telegram_username"] = display_username
+    context.user_data["telegram_username"] = f"@{user.username}" if user.username else ""
     context.user_data["full_name"] = update.message.text.strip()
-    await update.message.reply_text("📱 Введите номер телефона (лучше с +7):")
+
+    # ✅ Удаляем сообщение с вводом пользователя (например, "Иванов И.И.")
+    try:
+        await update.message.delete()
+    except:
+        pass  # если не получилось — не критично
+
+    # ✅ Редактируем сообщение с вопросом (сохранённое ранее)
+    chat_id = context.user_data.get("form_chat_id")
+    msg_id = context.user_data.get("form_message_id")
+
+    if chat_id and msg_id:
+        try:
+            keyboard = [[InlineKeyboardButton("← Назад в меню", callback_data="back")]]
+            await context.bot.edit_message_text(
+                chat_id=chat_id,
+                message_id=msg_id,
+                text="📱 Введите номер телефона (лучше с +7):",
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+        except Exception as e:
+            # Если сообщение уже удалено — создаём новое
+            sent = await update.message.reply_text(
+                "📱 Введите номер телефона (лучше с +7):",
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+            context.user_data["form_message_id"] = sent.message_id
+            context.user_data["form_chat_id"] = sent.chat_id
+    else:
+        # На всякий — fallback
+        sent = await update.message.reply_text(
+            "📱 Введите номер телефона (лучше с +7):",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("← Назад", callback_data="back")]])
+        )
+        context.user_data["form_message_id"] = sent.message_id
+        context.user_data["form_chat_id"] = sent.chat_id
+
     return PHONE
 
+# --- После продолжения — задаём вопрос почты ---
 async def phone_received(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["phone"] = update.message.text.strip()
-    await update.message.reply_text("📧 Укажите email (необязательно, но желательно):")
+    try:
+        await update.message.delete()
+    except:
+        pass
+
+    chat_id = context.user_data.get("form_chat_id")
+    msg_id = context.user_data.get("form_message_id")
+
+    if chat_id and msg_id:
+        try:
+            keyboard = [[InlineKeyboardButton("← Назад в меню", callback_data="back")]]
+            await context.bot.edit_message_text(
+                chat_id=chat_id,
+                message_id=msg_id,
+                text="📧 Укажите email (необязательно, но желательно):",
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+        except:
+            sent = await update.message.reply_text(
+                "📧 Укажите email (необязательно, но желательно):",
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+            context.user_data["form_message_id"] = sent.message_id
+            context.user_data["form_chat_id"] = sent.chat_id
+    else:
+        sent = await update.message.reply_text(
+            "📧 Укажите email (необязательно, но желательно):",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("← Назад", callback_data="back")]])
+        )
+        context.user_data["form_message_id"] = sent.message_id
+        context.user_data["form_chat_id"] = sent.chat_id
+
     return EMAIL
 
+
+# --- Получен email → показываем подтверждение ---
 async def email_received(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["email"] = update.message.text.strip()
-    
-    # Подтверждение
+    context.user_data["email"] = update.message.text.strip() or ""
+    try:
+        await update.message.delete()
+    except:
+        pass
+
     text = (
         "Проверьте введённые данные:\n\n"
         f"ФИО: {context.user_data['full_name']}\n"
         f"Телефон: {context.user_data['phone']}\n"
         f"Email: {context.user_data['email'] or '—'}\n\n"
-        "Всё верно?"
+        "✅ Всё верно?"
     )
     keyboard = [
         [InlineKeyboardButton("✅ Да, всё верно", callback_data="consent_confirm")],
         [InlineKeyboardButton("✏️ Заполнить заново", callback_data="consent_restart")]
     ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text(text, reply_markup=reply_markup)
+
+    chat_id = context.user_data.get("form_chat_id")
+    msg_id = context.user_data.get("form_message_id")
+
+    if chat_id and msg_id:
+        try:
+            await context.bot.edit_message_text(
+                chat_id=chat_id,
+                message_id=msg_id,
+                text=text,
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+        except:
+            sent = await update.message.reply_text(
+                text, reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+            context.user_data["form_message_id"] = sent.message_id
+            context.user_data["form_chat_id"] = sent.chat_id
+    else:
+        sent = await update.message.reply_text(
+            text, reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+        context.user_data["form_message_id"] = sent.message_id
+        context.user_data["form_chat_id"] = sent.chat_id
+
     return CONFIRM
 
+
+# --- Подтверждение → сохраняем и показываем финальное сообщение ---
 async def consent_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.callback_query.answer()
-    
-    # Сохраняем в CSV
-    data = context.user_data
+    query = update.callback_query
+    await query.answer()
+
+    # Сохраняем в CSV (как раньше)
     timestamp = datetime.now().isoformat(sep=" ", timespec="seconds")
-    
+    data = context.user_data
     with open(CSV_PATH, "a", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow([
@@ -95,55 +204,44 @@ async def consent_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
             data.get("email", ""),
             data.get("telegram_username", "")
         ])
-    keyboard = [[InlineKeyboardButton("← Назад в меню", callback_data="back")]]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.callback_query.message.reply_text(
-        "✅ Спасибо! Ваши данные сохранены. С вами скоро свяжутся для уточнения деталей.",
-        reply_markup=reply_markup  # ← вот что было пропущено!
+
+    # ✅ Финал: редактируем то же сообщение
+    await query.edit_message_text(
+        text="✅ Спасибо! Ваши данные сохранены.\nС вами скоро свяжутся.",
+        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("← Назад в меню", callback_data="back")]])
     )
     return ConversationHandler.END
 
+
+# --- Перезапуск формы ---
 async def consent_restart(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.callback_query.answer()
-    await update.callback_query.message.reply_text("🔁 Заполняем заново:")
+    query = update.callback_query
+    await query.answer()
     return await consent_full_name(update, context)
 
+
+# --- Отмена ---
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [[InlineKeyboardButton("← Назад в меню", callback_data="back")]]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text(
-        "❌ Форма отменена. Вы можете начать снова через меню.",
-        reply_markup=reply_markup)
+    # Если отмена через команду — нужно найти и отредактировать или удалить
+    if update.message:
+        # Попробуем удалить/отредактировать предыдущее сообщение
+        msg_id = context.user_data.get("start_message_id")
+        if msg_id:
+            try:
+                await context.bot.edit_message_text(
+                    chat_id=update.effective_chat.id,
+                    message_id=msg_id,
+                    text="❌ Форма отменена. Вы можете начать снова через меню.",
+                    reply_markup=InlineKeyboardMarkup(get_back_button())
+                )
+            except:
+                await update.message.reply_text(
+                    "❌ Форма отменена. Вы можете начать снова через меню.",
+                    reply_markup=InlineKeyboardMarkup(get_back_button())
+                )
+        else:
+            await update.message.reply_text(
+                "❌ Форма отменена. Вы можете начать снова через меню.",
+                reply_markup=InlineKeyboardMarkup(get_back_button())
+            )
     return ConversationHandler.END
-
-
-
-# Влада вариант
-# from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-# from telegram.ext import ContextTypes
-
-# async def consent_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-#     query = update.callback_query
-#     await query.answer()
-    
-#     text = "Форма согласия на обработку персональных данных.\n\n*Здесь будет форма с полями:*\n- ФИО\n- Телефон\n- Email\n- Согласие (галочка)"
-    
-#     keyboard = [
-#         [InlineKeyboardButton("Заполнить форму", callback_data="start_form")],
-#         [InlineKeyboardButton("← Назад в меню", callback_data="back")]
-#     ]
-#     reply_markup = InlineKeyboardMarkup(keyboard)
-    
-#     await query.edit_message_text(
-#         text=text,
-#         reply_markup=reply_markup
-#     )
-
-# async def start_form_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-#     query = update.callback_query
-#     await query.answer()
-    
-#     await query.edit_message_text(
-#         text="Начало формы... (будет реализовано позже)",
-#         reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("← Назад", callback_data="consent")]])
-#     )
