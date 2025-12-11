@@ -17,6 +17,32 @@ def is_admin(user_id: int) -> bool:
     except (ValueError, AttributeError):
         return False
 
+# --- Вспомогательная функция отправки сообщений ---
+async def reply_to_update(update: Update, text: str, reply_markup=None, parse_mode=None):
+    """Универсальная функция отправки сообщений для любого типа апдейта"""
+    if update.message:
+        await update.message.reply_text(text, reply_markup=reply_markup, parse_mode=parse_mode)
+    elif update.callback_query:
+        await update.callback_query.answer()
+        await update.callback_query.edit_message_text(text, reply_markup=reply_markup, parse_mode=parse_mode)
+    else:
+        # Резервный вариант
+        try:
+            await update.effective_message.reply_text(text, reply_markup=reply_markup, parse_mode=parse_mode)
+        except:
+            # Если ничего не работает
+            if update.effective_chat:
+                from telegram.error import BadRequest
+                try:
+                    await update._bot.send_message(
+                        chat_id=update.effective_chat.id,
+                        text=text,
+                        reply_markup=reply_markup,
+                        parse_mode=parse_mode
+                    )
+                except:
+                    pass
+
 # --- Константы ---
 CSV_PATH = "./storage/leads.csv"
 DATA_DIR = "./data"  # папка для гайдов (на уровне main.py)
@@ -33,7 +59,7 @@ AWAIT_GUIDE_FILE = 2
 async def albina_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     if not is_admin(user_id):
-        await update.message.reply_text("🔒 Неизвестная команда.")
+        await reply_to_update(update, "🔒 Неизвестная команда.")
         return
 
     keyboard = InlineKeyboardMarkup([
@@ -42,7 +68,7 @@ async def albina_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("📤 Скачать CSV", callback_data="admin_export_csv")],
         [InlineKeyboardButton("📘 Загрузить гайд", callback_data="admin_upload_guide")]
     ])
-    await update.message.reply_text("🔐 Админ-панель «Альбина»", reply_markup=keyboard)
+    await reply_to_update(update, "🔐 Админ-панель «Альбина»", reply_markup=keyboard)
 
 
 # --- Хендлер: нажали "Последние лиды" → бот просит ввести число ---
@@ -52,36 +78,34 @@ async def admin_ask_leads_callback(update: Update, context: ContextTypes.DEFAULT
     user_id = update.effective_user.id
 
     if not is_admin(user_id):
-        await query.message.reply_text("🔒 Доступ запрещён.")
+        await reply_to_update(update, "🔒 Доступ запрещён.")
         return
 
-    await query.message.reply_text(
-        "🔢 Сколько последних лидов вывести? (от 1 до 100)"
-    )
+    await reply_to_update(update, "🔢 Сколько последних лидов вывести? (от 1 до 100)")
     return ASK_LEADS_COUNT
 
 
 async def process_leads_count(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     if not is_admin(user_id):
-        await update.message.reply_text("🔒 Доступ запрещён.")
+        await reply_to_update(update, "🔒 Доступ запрещён.")
         return ConversationHandler.END
 
     text = update.message.text.strip()
     try:
         n = int(text)
         if n < 1:
-            await update.message.reply_text("❌ Число должно быть ≥ 1. Попробуйте снова:")
+            await reply_to_update(update, "❌ Число должно быть ≥ 1. Попробуйте снова:")
             return ASK_LEADS_COUNT
         if n > 100:
-            await update.message.reply_text("⚠️ Максимум — 100 записей. Использую 100.")
+            await reply_to_update(update, "⚠️ Максимум — 100 записей. Использую 100.")
             n = 100
     except ValueError:
-        await update.message.reply_text("❌ Введите целое число. Например: `20`")
+        await reply_to_update(update, "❌ Введите целое число. Например: `20`")
         return ASK_LEADS_COUNT
 
     if not os.path.exists(CSV_PATH):
-        await update.message.reply_text("📭 Файл leads.csv не найден.")
+        await reply_to_update(update, "📭 Файл leads.csv не найден.")
         return ConversationHandler.END
 
     leads = []
@@ -90,7 +114,7 @@ async def process_leads_count(update: Update, context: ContextTypes.DEFAULT_TYPE
             reader = csv.DictReader(f)
             rows = list(reader)
             if not rows:
-                await update.message.reply_text("📭 Нет зарегистрированных пользователей.")
+                await reply_to_update(update, "📭 Нет зарегистрированных пользователей.")
                 return ConversationHandler.END
 
             last_n = rows[-n:]
@@ -106,17 +130,17 @@ async def process_leads_count(update: Update, context: ContextTypes.DEFAULT_TYPE
                 leads.append(f"{i}. {name} | 📱 {phone} | ✉️ {email} | 📅 {ts} | {user_name}")
 
     except Exception as e:
-        await update.message.reply_text(f"⚠️ Ошибка чтения CSV: {e}")
+        await reply_to_update(update, f"⚠️ Ошибка чтения CSV: {e}")
         return ConversationHandler.END
 
     if not leads:
-        await update.message.reply_text("📭 Нет данных.")
+        await reply_to_update(update, "📭 Нет данных.")
     else:
         header = f"📋 Последние {len(leads)} лидов:\n\n"
         text = header + "\n".join(leads)
         max_len = 4000
         for i in range(0, len(text), max_len):
-            await update.message.reply_text(text[i:i + max_len])
+            await reply_to_update(update, text[i:i + max_len])
 
     return ConversationHandler.END
 
@@ -143,8 +167,8 @@ async def count_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception as e:
             reply_text = f"⚠️ Ошибка подсчёта: {e}"
 
-    target = update.message or update.callback_query.message
-    await target.reply_text(reply_text, parse_mode="Markdown")
+    # Используем универсальную функцию
+    await reply_to_update(update, reply_text, parse_mode="Markdown")
 
 
 async def admin_count_now_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -160,23 +184,30 @@ async def admin_export_csv_callback(update: Update, context: ContextTypes.DEFAUL
     user_id = update.effective_user.id
 
     if not is_admin(user_id):
-        await query.message.reply_text("🔒 Доступ запрещён.")
+        await reply_to_update(update, "🔒 Доступ запрещён.")
         return
 
     if not os.path.exists(CSV_PATH):
-        await query.message.reply_text("📭 Файл leads.csv не найден.")
+        await reply_to_update(update, "📭 Файл leads.csv не найден.")
         return
 
     try:
         today = datetime.now().strftime("%Y-%m-%d")
         filename = f"leads_{today}.csv"
         with open(CSV_PATH, "rb") as f:
-            await query.message.reply_document(
-                document=InputFile(f, filename=filename),
-                caption=f"📄 Выгрузка от {today}"
-            )
+            # Для документов нужно использовать оригинальный message
+            if update.callback_query and update.callback_query.message:
+                await update.callback_query.message.reply_document(
+                    document=InputFile(f, filename=filename),
+                    caption=f"📄 Выгрузка от {today}"
+                )
+            elif update.message:
+                await update.message.reply_document(
+                    document=InputFile(f, filename=filename),
+                    caption=f"📄 Выгрузка от {today}"
+                )
     except Exception as e:
-        await query.message.reply_text(f"❌ Ошибка отправки файла: {e}")
+        await reply_to_update(update, f"❌ Ошибка отправки файла: {e}")
 
 
 # --- НОВОЕ: Загрузка гайда ---
@@ -186,10 +217,10 @@ async def admin_upload_guide_callback(update: Update, context: ContextTypes.DEFA
     user_id = update.effective_user.id
 
     if not is_admin(user_id):
-        await query.message.reply_text("🔒 Доступ запрещён.")
+        await reply_to_update(update, "🔒 Доступ запрещён.")
         return
 
-    await query.message.reply_text(
+    await reply_to_update(update,
         "📘 Пришлите файл гайда.\n\n"
         "✅ Требования:\n"
         "— Формат: `.pdf` \n"
@@ -203,20 +234,20 @@ async def admin_upload_guide_callback(update: Update, context: ContextTypes.DEFA
 async def receive_guide_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     if not is_admin(user_id):
-        await update.message.reply_text("🔒 Доступ запрещён.")
+        await reply_to_update(update, "🔒 Доступ запрещён.")
         return ConversationHandler.END
 
     # Проверяем, есть ли документ
     document = update.message.document
     if not document:
-        await update.message.reply_text("❌ Пожалуйста, пришлите файл (не фото/текст).")
+        await reply_to_update(update, "❌ Пожалуйста, пришлите файл (не фото/текст).")
         return AWAIT_GUIDE_FILE
 
     # Проверяем расширение
     filename = document.file_name or ""
     ext = os.path.splitext(filename)[1].lower()
     if ext not in ['.pdf', '.doc', '.docx']:
-        await update.message.reply_text(
+        await reply_to_update(update,
             "❌ Неподдерживаемый формат.\n"
             "Разрешены: `.pdf`"
         )
@@ -224,7 +255,7 @@ async def receive_guide_file(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
     # Проверяем имя: должно содержать "Гайд о"
     if not re.search(r'Гайд\s+о\s', filename, re.IGNORECASE):
-        await update.message.reply_text(
+        await reply_to_update(update,
             "❌ Неверное имя файла.\n"
             "Файл должен содержать **«Гайд о»**, например:\n"
             "`Гайд о физических упражнениях.docx`"
@@ -240,12 +271,12 @@ async def receive_guide_file(update: Update, context: ContextTypes.DEFAULT_TYPE)
         # Сохраняем
         await file.download_to_drive(save_path)
 
-        await update.message.reply_text(
+        await reply_to_update(update,
             f"✅ Гайд сохранён:\n`{safe_filename}`\n\n"
             f"Путь: `./data/{safe_filename}`"
         )
     except Exception as e:
-        await update.message.reply_text(f"❌ Ошибка сохранения: {e}")
+        await reply_to_update(update, f"❌ Ошибка сохранения: {e}")
         return AWAIT_GUIDE_FILE
 
     return ConversationHandler.END
@@ -253,5 +284,5 @@ async def receive_guide_file(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 # Для отмены в любой момент
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("❌ Действие отменено.")
+    await reply_to_update(update, "❌ Действие отменено.")
     return ConversationHandler.END
