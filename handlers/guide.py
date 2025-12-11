@@ -3,12 +3,12 @@ from pathlib import Path
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 
-CHANNEL_ID = "@dr_halimova_gulnaz"
+CHANNEL_ID = "@dr_halimova_gulnaz"  # 
 DATA_DIR = Path("data")
 
 async def guide_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    await query.answer()
+    await query.answer() 
     
     user_id = query.from_user.id
     is_subscribed = await check_subscription(context.bot, user_id)
@@ -34,7 +34,7 @@ async def guide_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def show_guides_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.callback_query:
         query = update.callback_query
-        await query.answer()
+        await query.answer()  
         chat_id = query.message.chat_id
         message_id = query.message.message_id
         edit_message = True
@@ -87,7 +87,7 @@ async def show_guides_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def download_guide_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    await query.answer()
+    await query.answer() 
     
     filename = query.data.replace("download_", "")
     filepath = DATA_DIR / filename
@@ -105,24 +105,29 @@ async def download_guide_handler(update: Update, context: ContextTypes.DEFAULT_T
                 caption="✅ Вот ваш гайд! Приятного изучения."
             )
         
+
         await query.answer("✅ Гайд отправлен! Проверьте сообщения.", show_alert=False)
     except Exception as e:
         await query.answer(f"❌ Ошибка: {str(e)[:50]}...", show_alert=True)
 
 async def check_subscription_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    await query.answer()
     
     user_id = query.from_user.id
     is_subscribed = await check_subscription(context.bot, user_id)
     
     if not is_subscribed:
+        
         await query.answer(
-            "❌ Вы не подписаны на канал! Подпишитесь и попробуйте снова.",
-            show_alert=True
+            "❌ Вы не подписаны на канал!\n\n"
+            "Пожалуйста, подпишитесь на канал"
+            "и попробуйте ещё раз.",
+            show_alert=True  
         )
         return
     
+
+    await query.answer("✅ Вы подписаны! Загружаю гайды...", show_alert=False)
     await show_guides_list(update, context)
 
 async def check_subscription(bot, user_id: int) -> bool:
