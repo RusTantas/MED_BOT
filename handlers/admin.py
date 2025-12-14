@@ -5,6 +5,7 @@ import re
 from datetime import datetime
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, InputFile
 from telegram.ext import ContextTypes, ConversationHandler
+from logger import logger
 
 # --- Вспомогательная функция проверки админа ---
 def is_admin(user_id: int) -> bool:
@@ -206,49 +207,55 @@ async def receive_guide_file(update: Update, context: ContextTypes.DEFAULT_TYPE)
         await update.message.reply_text("🔒 Доступ запрещён.")
         return ConversationHandler.END
 
-    # Проверяем, есть ли документ
-    document = update.message.document
-    if not document:
-        await update.message.reply_text("❌ Пожалуйста, пришлите файл (не фото/текст).")
-        return AWAIT_GUIDE_FILE
-
-    # Проверяем расширение
-    filename = document.file_name or ""
-    ext = os.path.splitext(filename)[1].lower()
-    if ext not in ['.pdf', '.doc', '.docx']:
-        await update.message.reply_text(
-            "❌ Неподдерживаемый формат.\n"
-            "Разрешены: `.pdf`"
-        )
-        return AWAIT_GUIDE_FILE
-
-    # Проверяем имя: должно содержать "Гайд о"
-    if not re.search(r'Гайд\s+о\s', filename, re.IGNORECASE):
-        await update.message.reply_text(
-            "❌ Неверное имя файла.\n"
-            "Файл должен содержать **«Гайд о»**, например:\n"
-            "`Гайд о физических упражнениях.docx`"
-        )
-        return AWAIT_GUIDE_FILE
-
-    # Скачиваем и сохраняем
     try:
-        file = await document.get_file()
-        safe_filename = filename.replace("/", "_").replace("\\", "_")
-        save_path = os.path.join(DATA_DIR, safe_filename)
+        document = update.message.document
+        if not document:
+            await update.message.reply_text("❌ Пожалуйста, пришлите файл (не фото/текст).")
+            return AWAIT_GUIDE_FILE
 
-        # Сохраняем
+        # Получаем имя и расширение
+        filename = document.file_name or "unnamed"
+        base_name = os.path.basename(filename)
+        ext = Path(base_name).suffix.lower()
+
+        # Поддерживаемые форматы (как в config.ALLOWED_EXTENSIONS, но без изображений)
+        if ext not in ['.pdf', '.doc', '.docx']:
+            await update.message.reply_text(
+                "❌ Неподдерживаемый формат.\n"
+                "Разрешены: `.pdf`, `.doc`, `.docx`"
+            )
+            return AWAIT_GUIDE_FILE
+
+        # Проверка: имя файла должно начинаться с «Гайд о» (регистронезависимо)
+        if not base_name.lower().startswith('гайд о'):
+            await update.message.reply_text(
+                "❌ Неверное имя файла.\n"
+                "Файл должен начинаться с **«Гайд о»**, например:\n"
+                "`Гайд о физических упражнениях.pdf`"
+            )
+            return AWAIT_GUIDE_FILE
+
+        # Безопасное имя (убираем потенциально опасные символы)
+        safe_name = re.sub(r'[<>:"|?*]', '_', base_name)
+        save_path = Path(DATA_DIR) / safe_name
+
+        # Скачивание
+        file = await document.get_file()
         await file.download_to_drive(save_path)
 
+        logger.info(f"✅ Гайд загружен: {safe_name} от user_id={user_id}")
         await update.message.reply_text(
-            f"✅ Гайд сохранён:\n`{safe_filename}`\n\n"
-            f"Путь: `./data/{safe_filename}`"
+            f"✅ Гайд сохранён:\n`{safe_name}`\n\n"
+            f"Путь: `./data/{safe_name}`"
         )
-    except Exception as e:
-        await update.message.reply_text(f"❌ Ошибка сохранения: {e}")
-        return AWAIT_GUIDE_FILE
 
-    return ConversationHandler.END
+        return ConversationHandler.END
+
+    except Exception as e:
+        logger.exception(f"❌ Ошибка при загрузке гайда от user_id={user_id}: {e}")
+        await update.message.reply_text("❌ Не удалось сохранить файл. Администратор уведомлён.")
+        return ConversationHandler.END
+
 
 
 # Для отмены в любой момент

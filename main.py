@@ -41,6 +41,7 @@ from handlers import (
 
 import warnings
 from telegram.warnings import PTBUserWarning
+from logger import logger
 
 warnings.filterwarnings(
     "ignore",
@@ -49,6 +50,27 @@ warnings.filterwarnings(
 )
 
 load_dotenv()
+
+# Настройка глобального exception handler'а
+def global_exception_handler(update, context):
+    logger.error(
+        "Unhandled exception occurred",
+        exc_info=context.error,
+        extra={"update": update.to_dict() if update else None}
+    )
+    
+    # Опционально: отправить админам сообщение об ошибке
+    try:
+        import os
+        admin_ids = [int(x) for x in os.getenv("ADMIN_IDS", "").split(",") if x.strip()]
+        error_msg = (
+            f"🚨 *Критическая ошибка в боте*\n"
+            f"```\n{str(context.error)[:1000]}\n```"
+        )
+        for admin_id in admin_ids:
+            context.bot.send_message(chat_id=admin_id, text=error_msg, parse_mode="Markdown")
+    except Exception as e:
+        logger.warning(f"Failed to notify admins: {e}")
 
 def main():
     app = Application.builder().token(os.getenv("BOT_TOKEN")).build()
@@ -116,6 +138,10 @@ def main():
     app.add_handler(CallbackQueryHandler(admin_export_csv_callback, pattern="^admin_export_csv$"))
 
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_main_menu))
+    # Регистрируем глобальный обработчик ошибок
+    app.add_error_handler(global_exception_handler)
+
+    logger.info("✅ Бот запущен. Логирование активно.")
 
     app.run_polling(drop_pending_updates=True)
 

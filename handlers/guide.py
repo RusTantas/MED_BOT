@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
+from logger import logger
 
 CHANNEL_ID = "@dr_halimova_gulnaz"  # 
 DATA_DIR = Path("data")
@@ -141,6 +142,7 @@ async def check_subscription(bot, user_id: int) -> bool:
         return member.status in subscribed_statuses
         
     except Exception:
+        logger.warning(f"⚠️ Не удалось проверить подписку user_id={user_id}: {e}")
         return False
 
 def get_available_guides():

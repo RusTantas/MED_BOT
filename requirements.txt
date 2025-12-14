@@ -1,3 +1,4 @@
+# Стандартный logging — без зависимостей
 python-telegram-bot==20.7
 python-dotenv>=1.0.0
 gspread>=6.0.0          # Google Sheets API (автоматически ставит oauth2client)

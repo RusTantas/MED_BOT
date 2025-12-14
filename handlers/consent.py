@@ -4,6 +4,7 @@ import os
 from datetime import datetime
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, ConversationHandler
+from logger import logger
 
 from config import CONSENT_TEXT
 
@@ -187,30 +188,45 @@ async def email_received(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return CONFIRM
 
 
-# --- Подтверждение → сохраняем и показываем финальное сообщение ---
 async def consent_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
-    # Сохраняем в CSV (как раньше)
-    timestamp = datetime.now().isoformat(sep=" ", timespec="seconds")
-    data = context.user_data
-    with open(CSV_PATH, "a", newline="", encoding="utf-8") as f:
-        writer = csv.writer(f)
-        writer.writerow([
-            timestamp,
-            data.get("full_name", ""),
-            data.get("phone", ""),
-            data.get("email", ""),
-            data.get("telegram_username", "")
-        ])
+    try:
+        timestamp = datetime.now().isoformat(sep=" ", timespec="seconds")
+        data = context.user_data
 
-    # ✅ Финал: редактируем то же сообщение
-    await query.edit_message_text(
-        text="✅ Спасибо! Ваши данные сохранены.\nС вами скоро свяжутся.",
-        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("← Назад в меню", callback_data="back")]])
-    )
-    return ConversationHandler.END
+        full_name = data.get("full_name", "").strip()
+        phone = data.get("phone", "").strip()
+        email = data.get("email", "").strip()
+        telegram_username = data.get("telegram_username", "").strip()
+
+        with open(CSV_PATH, "a", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerow([timestamp, full_name, phone, email, telegram_username])
+
+        logger.info(f"✅ Новый лид сохранён: {full_name} | {phone} | {telegram_username}")
+
+        await query.edit_message_text(
+            text="✅ Спасибо! Ваши данные сохранены.\nС вами скоро свяжутся.",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("← Назад в меню", callback_data="back")]
+            ])
+        )
+        return ConversationHandler.END
+
+    except Exception as e:
+        logger.exception("❌ Ошибка при сохранении лида в CSV")
+        try:
+            await query.edit_message_text(
+                text="⚠️ Ошибка при сохранении. Попробуйте позже или свяжитесь с поддержкой."
+            )
+        except Exception:
+            # Если редактирование не удалось — отправим новое сообщение
+            await query.message.reply_text(
+                "⚠️ Ошибка при сохранении. Попробуйте позже."
+            )
+        return ConversationHandler.END
 
 
 # --- Перезапуск формы ---
