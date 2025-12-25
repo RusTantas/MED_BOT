@@ -14,7 +14,7 @@ async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("👨‍⚕️ Об авторе", callback_data="about")],
         [InlineKeyboardButton("⭐ Отзывы", callback_data="reviews")],
-        [InlineKeyboardButton("📦 О продукте", callback_data="product")],
+        [InlineKeyboardButton("🌿 Здорове тело", callback_data="product")],
         [InlineKeyboardButton("📅 Запись на консультацию", callback_data="booking")],
         [InlineKeyboardButton("Согласие на обработку ПД", callback_data="consent")],
         [InlineKeyboardButton("📥 Скачать гайд", callback_data="guide")]

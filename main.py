@@ -36,7 +36,11 @@ from handlers import (
     guide_handler,
     check_subscription_handler,
     download_guide_handler,
-    show_guides_list
+    show_guides_list,
+    product_handler,
+    show_tariff_new,
+    show_tariff_month2,
+    show_tariff_long
 )
 
 import warnings
@@ -129,6 +133,10 @@ def main():
     app.add_handler(CallbackQueryHandler(about_handler, pattern="^about$"))
     app.add_handler(CallbackQueryHandler(reviews_handler, pattern="^reviews$"))
     app.add_handler(CallbackQueryHandler(product_handler, pattern="^product$"))
+    app.add_handler(CallbackQueryHandler(product_handler, pattern="^product$"))
+    app.add_handler(CallbackQueryHandler(show_tariff_new, pattern="^product_new$"))
+    app.add_handler(CallbackQueryHandler(show_tariff_month2, pattern="^product_month2$"))
+    app.add_handler(CallbackQueryHandler(show_tariff_long, pattern="^product_long$"))
     app.add_handler(CallbackQueryHandler(booking_handler, pattern="^booking$"))
     app.add_handler(CallbackQueryHandler(guide_handler, pattern="^guide$"))
     app.add_handler(CallbackQueryHandler(check_subscription_handler, pattern="^check_subscription$"))
