@@ -19,12 +19,24 @@ from handlers.admin import (
     admin_count_now_callback,
     admin_export_csv_callback,
     admin_upload_guide_callback,
+    admin_edit_product_text_callback,
+    admin_edit_prices_callback,
+    edit_text_confirm_callback,
+    edit_price_new_callback,
+    edit_price_month2_callback,
+    edit_price_long1_callback,
+    edit_price_long2_callback,
+    back_to_admin_callback,
     process_leads_count,
+    process_product_text,
+    process_price_update,
     receive_guide_file,
     count_handler,
     cancel as admin_cancel,
     ASK_LEADS_COUNT,
-    AWAIT_GUIDE_FILE
+    AWAIT_GUIDE_FILE,
+    EDIT_PRODUCT_TEXT,
+    EDIT_PRICES
 )
 
 from handlers import (
@@ -119,6 +131,33 @@ def main():
         allow_reentry=True
     )
 
+    edit_product_text_conv = ConversationHandler(
+        entry_points=[CallbackQueryHandler(admin_edit_product_text_callback, pattern="^admin_edit_product_text$")],
+        states={
+            EDIT_PRODUCT_TEXT: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, process_product_text)
+            ]
+        },
+        fallbacks=[CommandHandler("cancel", admin_cancel)],
+        allow_reentry=True
+    )
+
+    edit_prices_conv = ConversationHandler(
+        entry_points=[
+            CallbackQueryHandler(edit_price_new_callback, pattern="^edit_price_new$"),
+            CallbackQueryHandler(edit_price_month2_callback, pattern="^edit_price_month2$"),
+            CallbackQueryHandler(edit_price_long1_callback, pattern="^edit_price_long1$"),
+            CallbackQueryHandler(edit_price_long2_callback, pattern="^edit_price_long2$")
+        ],
+        states={
+            EDIT_PRICES: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, process_price_update)
+            ]
+        },
+        fallbacks=[CommandHandler("cancel", admin_cancel)],
+        allow_reentry=True
+    )
+
     app.add_handler(CommandHandler("start", start_handler))
     app.add_handler(CommandHandler("menu", start_handler))
     app.add_handler(CommandHandler("albina", albina_handler))
@@ -128,11 +167,12 @@ def main():
     app.add_handler(consent_conv)
     app.add_handler(leads_conversation)
     app.add_handler(upload_guide_conv)
+    app.add_handler(edit_product_text_conv)
+    app.add_handler(edit_prices_conv)
 
     app.add_handler(CallbackQueryHandler(start_handler, pattern="^back$"))
     app.add_handler(CallbackQueryHandler(about_handler, pattern="^about$"))
     app.add_handler(CallbackQueryHandler(reviews_handler, pattern="^reviews$"))
-    app.add_handler(CallbackQueryHandler(product_handler, pattern="^product$"))
     app.add_handler(CallbackQueryHandler(product_handler, pattern="^product$"))
     app.add_handler(CallbackQueryHandler(show_tariff_new, pattern="^product_new$"))
     app.add_handler(CallbackQueryHandler(show_tariff_month2, pattern="^product_month2$"))
@@ -144,6 +184,11 @@ def main():
 
     app.add_handler(CallbackQueryHandler(admin_count_now_callback, pattern="^admin_count_now$"))
     app.add_handler(CallbackQueryHandler(admin_export_csv_callback, pattern="^admin_export_csv$"))
+    app.add_handler(CallbackQueryHandler(admin_edit_product_text_callback, pattern="^admin_edit_product_text$"))
+    app.add_handler(CallbackQueryHandler(admin_edit_prices_callback, pattern="^admin_edit_prices$"))
+    app.add_handler(CallbackQueryHandler(back_to_admin_callback, pattern="^back_to_admin$"))
+
+    app.add_handler(CallbackQueryHandler(edit_text_confirm_callback, pattern="^edit_text_confirm$"))
 
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_main_menu))
     # Регистрируем глобальный обработчик ошибок
