@@ -4,6 +4,7 @@ import os
 from datetime import datetime
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, ConversationHandler
+from logger import logger
 
 from config import CONSENT_TEXT
 
@@ -16,7 +17,14 @@ os.makedirs("./storage", exist_ok=True)
 if not os.path.exists(CSV_PATH):
     with open(CSV_PATH, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
-        writer.writerow(["timestamp", "full_name", "phone", "email", "telegram_username"])
+        writer.writerow([
+            "timestamp", 
+            "full_name", 
+            "phone", 
+            "email", 
+            "telegram_username", 
+            "tariff"
+        ])
 
 
 def get_back_button():
@@ -28,13 +36,17 @@ async def consent_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
+    selected_tariff = context.user_data.get("selected_tariff", "не указан")
+    consent_text = CONSENT_TEXT.format(tariff=selected_tariff)
+
     keyboard = [
         [InlineKeyboardButton("✅ Начать заполнение", callback_data="consent_start")],
-        [InlineKeyboardButton("← Назад в меню", callback_data="back")]
+        [InlineKeyboardButton("← Назад", callback_data="product")]
     ]
     await query.edit_message_text(
-        text=CONSENT_TEXT,
-        reply_markup=InlineKeyboardMarkup(keyboard)
+        text=consent_text,
+        reply_markup=InlineKeyboardMarkup(keyboard),
+        parse_mode="Markdown"
     )
     return FULL_NAME
 
@@ -148,7 +160,9 @@ async def email_received(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except:
         pass
 
+    tariff = context.user_data.get("selected_tariff", "не указан")
     text = (
+        f"📌 Программа: *{tariff}*\n\n"
         "Проверьте введённые данные:\n\n"
         f"ФИО: {context.user_data['full_name']}\n"
         f"Телефон: {context.user_data['phone']}\n"
@@ -169,7 +183,8 @@ async def email_received(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 chat_id=chat_id,
                 message_id=msg_id,
                 text=text,
-                reply_markup=InlineKeyboardMarkup(keyboard)
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode="Markdown"  # ← важно!
             )
         except:
             sent = await update.message.reply_text(
@@ -187,30 +202,48 @@ async def email_received(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return CONFIRM
 
 
-# --- Подтверждение → сохраняем и показываем финальное сообщение ---
 async def consent_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
-    # Сохраняем в CSV (как раньше)
-    timestamp = datetime.now().isoformat(sep=" ", timespec="seconds")
-    data = context.user_data
-    with open(CSV_PATH, "a", newline="", encoding="utf-8") as f:
-        writer = csv.writer(f)
-        writer.writerow([
-            timestamp,
-            data.get("full_name", ""),
-            data.get("phone", ""),
-            data.get("email", ""),
-            data.get("telegram_username", "")
-        ])
+    try:
+        timestamp = datetime.now().isoformat(sep=" ", timespec="seconds")
+        data = context.user_data
 
-    # ✅ Финал: редактируем то же сообщение
-    await query.edit_message_text(
-        text="✅ Спасибо! Ваши данные сохранены.\nС вами скоро свяжутся.",
-        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("← Назад в меню", callback_data="back")]])
-    )
-    return ConversationHandler.END
+        full_name = data.get("full_name", "").strip()
+        phone = data.get("phone", "").strip()
+        email = data.get("email", "").strip()
+        telegram_username = data.get("telegram_username", "").strip()
+        tariff = data.get("selected_tariff", "не указан")
+
+        with open(CSV_PATH, "a", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerow([timestamp, full_name, phone, email, telegram_username, tariff])
+
+        logger.info(f"✅ Новый лид сохранён: {full_name} | {phone} | {tariff}")
+
+        await query.edit_message_text(
+            text=(
+                "✅ Спасибо! Ваши данные сохранены.\n"
+                f"Выбранная программа: *{tariff}*.\n"
+                "С вами скоро свяжутся."
+            ),
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("← Назад в меню", callback_data="back")]
+            ]),
+            parse_mode="Markdown"
+        )
+        return ConversationHandler.END
+
+    except Exception as e:
+        logger.exception("❌ Ошибка при сохранении лида в CSV")
+        try:
+            await query.edit_message_text(
+                text="⚠️ Ошибка при сохранении. Попробуйте позже или свяжитесь с поддержкой."
+            )
+        except Exception:
+            await query.message.reply_text("⚠️ Ошибка при сохранении. Попробуйте позже.")
+        return ConversationHandler.END
 
 
 # --- Перезапуск формы ---

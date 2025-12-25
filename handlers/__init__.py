@@ -36,6 +36,12 @@ from .admin import (
     AWAIT_GUIDE_FILE
 )
 
+from .product_details import (
+    show_tariff_new,
+    show_tariff_month2,
+    show_tariff_long
+)
+
 __all__ = [
     "start_handler",
     "consent_start", "consent_full_name", "full_name_received",
@@ -55,5 +61,5 @@ __all__ = [
     'admin_count_now_callback', 'process_leads_count',
     'ASK_LEADS_COUNT', 'admin_export_csv_callback',
     'admin_upload_guide_callback', 'receive_guide_file',
-    'admin_cancel'
+    'admin_cancel', 'show_tariff_new', 'show_tariff_month2', 'show_tariff_long'
 ]

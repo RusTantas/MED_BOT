@@ -2,4 +2,7 @@
 venv/
 storage/
 handlers/__pycache__/
-__pycache__
+__pycache__/*
+__pycache__/*
+logs/
+__pycache__/config.cpython-38.pyc
