@@ -123,12 +123,13 @@ async def process_leads_count(update: Update, context: ContextTypes.DEFAULT_TYPE
                 name = row.get("full_name", "").strip() or "—"
                 phone = row.get("phone", "").strip() or "—"
                 email = row.get("email", "").strip() or "—"
+                tarif = row.get("tariff", "").strip() or "—"
                 ts_full = row.get("timestamp", "")
                 ts = ts_full.split()[0] if ts_full.strip() else "—"
                 user_name = row.get("telegram_username", "").strip() or "—"
                 if user_name != "—":
                     user_name = "@" + user_name
-                leads.append(f"{i}. {name} | 📱 {phone} | ✉️ {email} | 📅 {ts} | {user_name}")
+                leads.append(f"{i}. {name} | 📱 {phone} | ✉️ {email} |  📋 {tarif} | 📅 {ts} | {user_name}")
 
     except Exception as e:
         await reply_to_update(update, f"⚠️ Ошибка чтения CSV: {e}")

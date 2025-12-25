@@ -49,7 +49,12 @@ TARIFF_LONG = (
 async def show_tariff_new(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    keyboard = [[InlineKeyboardButton("← Назад к выбору", callback_data="product")]]
+    context.user_data["selected_tariff"] = "Впервые в программе"
+
+    keyboard = [
+        [InlineKeyboardButton("📩 Оставить заявку", callback_data="consent")],
+        [InlineKeyboardButton("← Назад к выбору", callback_data="product")]
+    ]
     await query.edit_message_text(
         text=TARIFF_NEW,
         reply_markup=InlineKeyboardMarkup(keyboard),
@@ -59,7 +64,12 @@ async def show_tariff_new(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def show_tariff_month2(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    keyboard = [[InlineKeyboardButton("← Назад к выбору", callback_data="product")]]
+    context.user_data["selected_tariff"] = "Продолжаю 2-й месяц"
+
+    keyboard = [
+        [InlineKeyboardButton("📩 Оставить заявку", callback_data="consent")],
+        [InlineKeyboardButton("← Назад к выбору", callback_data="product")]
+    ]
     await query.edit_message_text(
         text=TARIFF_MONTH2,
         reply_markup=InlineKeyboardMarkup(keyboard),
@@ -69,7 +79,12 @@ async def show_tariff_month2(update: Update, context: ContextTypes.DEFAULT_TYPE)
 async def show_tariff_long(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    keyboard = [[InlineKeyboardButton("← Назад к выбору", callback_data="product")]]
+    context.user_data["selected_tariff"] = "Уже 2+ месяца"
+
+    keyboard = [
+        [InlineKeyboardButton("📩 Оставить заявку", callback_data="consent")],
+        [InlineKeyboardButton("← Назад к выбору", callback_data="product")]
+    ]
     await query.edit_message_text(
         text=TARIFF_LONG,
         reply_markup=InlineKeyboardMarkup(keyboard),
