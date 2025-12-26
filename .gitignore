@@ -6,3 +6,6 @@ __pycache__/*
 __pycache__/*
 logs/
 __pycache__/config.cpython-38.pyc
+get-pip.py
+get-pip.py.1
+get_pipx.py
