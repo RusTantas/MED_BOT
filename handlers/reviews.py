@@ -10,7 +10,7 @@ async def reviews_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for i, link in enumerate(REVIEWS_LINKS, 1):
         text += f"{i}. {link}\n"
     
-    text += "\nВы можете оставить свой отзыв по этим ссылкам!"
+    text += "\nВы можете оставить свой отзыв по этим ссылкам!❤️"
     
     keyboard = [[InlineKeyboardButton("← Назад в меню", callback_data="back")]]
     reply_markup = InlineKeyboardMarkup(keyboard)
