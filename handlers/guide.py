@@ -103,7 +103,7 @@ async def download_guide_handler(update: Update, context: ContextTypes.DEFAULT_T
                 chat_id=query.message.chat_id,
                 document=file,
                 filename=filename,
-                caption="✅ Вот ваш гайд! Приятного изучения."
+                caption="✅ Вот ваш гайд! Приятного вам прочтения и активного долголетия."
             )
         
 
