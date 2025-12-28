@@ -1,0 +1,26 @@
+# docker-compose.yml
+version: '3.8'
+
+services:
+  bot:
+    build: .
+    container_name: dr_halimova_bot
+    restart: unless-stopped  # ← главный флаг! Перезапускает при падении
+    user: "${UID:-1000}:${GID:-1000}"
+    env_file:
+      - .env
+    volumes:
+      - ./storage:/app/storage
+      - ./data:/app/data
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; exit(0)"]
+      interval: 1m
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

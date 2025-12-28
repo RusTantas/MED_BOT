@@ -1,5 +1,6 @@
 import os
 from dotenv import load_dotenv
+from telegram import Update
 from telegram.ext import (
     Application, CommandHandler, CallbackQueryHandler,
     ConversationHandler, MessageHandler, filters
@@ -58,6 +59,9 @@ from handlers import (
 import warnings
 from telegram.warnings import PTBUserWarning
 from logger import logger
+import asyncio
+import time
+from telegram.error import NetworkError, RetryAfter, TimedOut
 
 warnings.filterwarnings(
     "ignore",
@@ -196,7 +200,25 @@ def main():
 
     logger.info("✅ Бот запущен. Логирование активно.")
 
-    app.run_polling(drop_pending_updates=True)
+    while True:
+        try:
+            app.run_polling(
+                drop_pending_updates=True,
+                close_loop=False,
+                allowed_updates=Update.ALL_TYPES
+            )
+        except (NetworkError, TimedOut, RetryAfter) as e:
+            logger.warning(f"⚠️ Сетевая ошибка: {e}. Переподключение через 5 сек...")
+            time.sleep(5)
+        except Exception as e:
+            logger.exception(f"🚨 Критическая ошибка. Перезапуск через 10 сек...")
+            time.sleep(10)
+        finally:
+            # Очистим pending updates при перезапуске
+            try:
+                asyncio.run(app.bot.delete_webhook(drop_pending_updates=True))
+            except:
+                pass
 
 if __name__ == "__main__":
     main()
