@@ -79,6 +79,7 @@ ASK_LEADS_COUNT = 1
 AWAIT_GUIDE_FILE = 2
 EDIT_PRODUCT_TEXT = 3
 EDIT_PRICES = 4
+SEND_BROADCAST = 5
 
 # --- Хендлер: /albina — админ-меню ---
 async def albina_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -92,10 +93,377 @@ async def albina_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("🔢 Общее количество", callback_data="admin_count_now")],
         [InlineKeyboardButton("📤 Скачать CSV", callback_data="admin_export_csv")],
         [InlineKeyboardButton("📘 Загрузить гайд", callback_data="admin_upload_guide")],
+        [InlineKeyboardButton("📢 Сделать рассылку", callback_data="admin_broadcast")],
         [InlineKeyboardButton("✏️ Редактировать текст программы", callback_data="admin_edit_product_text")],
         [InlineKeyboardButton("💰 Изменить цены", callback_data="admin_edit_prices")]
     ])
     await reply_to_update(update, "🔐 Админ-панель «Альбина»", reply_markup=keyboard)
+
+# --- НОВОЕ: Рассылка сообщений ---
+async def admin_broadcast_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    user_id = update.effective_user.id
+
+    if not is_admin(user_id):
+        await reply_to_update(update, "🔒 Доступ запрещён.")
+        return
+    
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("📢 Рассылка ТЕКСТОМ", callback_data="broadcast_text")],
+        [InlineKeyboardButton("🖼 Рассылка с ФОТО", callback_data="broadcast_photo")],
+        [InlineKeyboardButton("📎 Рассылка с ДОКУМЕНТОМ", callback_data="broadcast_document")],
+        [InlineKeyboardButton("← Назад в админ-панель", callback_data="back_to_admin")]
+    ])
+    
+    # Получаем количество пользователей для справки
+    user_count = 0
+    if os.path.exists(CSV_PATH):
+        try:
+            with open(CSV_PATH, "r", encoding="utf-8") as f:
+                total = sum(1 for _ in f) - 1
+                if total > 0:
+                    user_count = total
+        except:
+            pass
+    
+    await query.edit_message_text(
+        text=f"📢 *РАССЫЛКА СООБЩЕНИЙ*\n\n"
+             f"Всего пользователей в базе: *{user_count}*\n\n"
+             "Выберите тип рассылки:\n"
+             "• *ТЕКСТ* — обычное текстовое сообщение\n"
+             "• *ФОТО* — картинка с подписью\n"
+             "• *ДОКУМЕНТ* — файл с подписью\n\n"
+             "ℹ️ Подпись к фото/документу можно оставить пустой.",
+        reply_markup=keyboard,
+        parse_mode="Markdown"
+    )
+
+async def broadcast_text_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    
+    context.user_data["broadcast_type"] = "text"
+    
+    await query.edit_message_text(
+        text="📝 *РАССЫЛКА ТЕКСТОМ*\n\n"
+             "Введите текст для рассылки:\n\n"
+             "ℹ️ Поддерживается Markdown разметка:\n"
+             "• *жирный* — *текст*\n"
+             "• _курсив_ — _текст_\n"
+             "• [ссылка](https://...) — [текст](ссылка)\n\n"
+             "❌ Отмена: /cancel",
+        parse_mode="Markdown"
+    )
+    return SEND_BROADCAST
+
+async def broadcast_photo_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    
+    context.user_data["broadcast_type"] = "photo"
+    
+    await query.edit_message_text(
+        text="🖼 *РАССЫЛКА С ФОТО*\n\n"
+             "1. Сначала отправьте *фотографию* (не файлом, а как фото)\n"
+             "2. Затем отправьте *подпись* к фото (можно оставить пустой, отправив /skip)\n\n"
+             "Отправьте фото или /cancel для отмены",
+        parse_mode="Markdown"
+    )
+    return SEND_BROADCAST
+
+async def broadcast_document_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    
+    context.user_data["broadcast_type"] = "document"
+    
+    await query.edit_message_text(
+        text="📎 *РАССЫЛКА С ДОКУМЕНТОМ*\n\n"
+             "1. Сначала отправьте *документ* (PDF, Word, Excel и т.д.)\n"
+             "2. Затем отправьте *подпись* к документу (можно оставить пустой, отправив /skip)\n\n"
+             "Отправьте документ или /cancel для отмены",
+        parse_mode="Markdown"
+    )
+    return SEND_BROADCAST
+
+async def get_user_ids_from_csv():
+    """Получает все user_id из leads.csv (если есть)"""
+    user_ids = set()
+    
+    if not os.path.exists(CSV_PATH):
+        return user_ids
+    
+    try:
+        with open(CSV_PATH, "r", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                # В CSV нет user_id, но можно получить их из других источников
+                # Пока возвращаем пустой список - нужна доработка базы данных
+                pass
+    except Exception as e:
+        logger.error(f"Ошибка чтения CSV для рассылки: {e}")
+    
+    return user_ids
+
+async def get_all_chat_ids(bot):
+    """Получает все chat_id из истории сообщений (ограниченная функциональность)"""
+    # Этот метод неполный - в реальности нужно хранить chat_id в базе
+    # Временное решение: возвращаем пустой список
+    return []
+
+async def process_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if not is_admin(user_id):
+        await reply_to_update(update, "🔒 Доступ запрещён.")
+        return ConversationHandler.END
+    
+    broadcast_type = context.user_data.get("broadcast_type", "text")
+    
+    if broadcast_type == "text":
+        # Текстовая рассылка
+        message_text = update.message.text
+        
+        # Запрашиваем подтверждение
+        preview = message_text[:200] + "..." if len(message_text) > 200 else message_text
+        
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("✅ Да, отправить всем", callback_data="confirm_broadcast")],
+            [InlineKeyboardButton("❌ Нет, отменить", callback_data="cancel_broadcast")]
+        ])
+        
+        await update.message.reply_text(
+            f"📨 *ПРЕДПРОСМОТР РАССЫЛКИ*\n\n"
+            f"Тип: Текст\n"
+            f"Длина: {len(message_text)} символов\n\n"
+            f"*Текст:*\n{preview}\n\n"
+            f"Отправить это сообщение всем пользователям?",
+            reply_markup=keyboard,
+            parse_mode="Markdown"
+        )
+        
+        context.user_data["broadcast_content"] = message_text
+        context.user_data["broadcast_preview"] = preview
+        
+    elif broadcast_type == "photo":
+        # Рассылка с фото
+        if update.message.photo:
+            # Сохраняем photo_id
+            photo = update.message.photo[-1]  # Берем самую большую версию фото
+            context.user_data["broadcast_photo_id"] = photo.file_id
+            
+            await update.message.reply_text(
+                "✅ Фото получено. Теперь отправьте подпись к фото "
+                "(или /skip чтобы оставить без подписки):"
+            )
+            return SEND_BROADCAST
+        elif update.message.text and update.message.text.strip() != "/skip":
+            # Это подпись к фото
+            caption = update.message.text
+            
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("✅ Да, отправить всем", callback_data="confirm_broadcast")],
+                [InlineKeyboardButton("❌ Нет, отменить", callback_data="cancel_broadcast")]
+            ])
+            
+            await update.message.reply_text(
+                f"📸 *ПРЕДПРОСМОТР РАССЫЛКИ*\n\n"
+                f"Тип: Фото с подписью\n"
+                f"Длина подписи: {len(caption)} символов\n\n"
+                f"Отправить это фото всем пользователям?",
+                reply_markup=keyboard,
+                parse_mode="Markdown"
+            )
+            
+            context.user_data["broadcast_caption"] = caption
+            
+        elif update.message.text and update.message.text.strip() == "/skip":
+            # Без подписи
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("✅ Да, отправить всем", callback_data="confirm_broadcast")],
+                [InlineKeyboardButton("❌ Нет, отменить", callback_data="cancel_broadcast")]
+            ])
+            
+            await update.message.reply_text(
+                f"📸 *ПРЕДПРОСМОТР РАССЫЛКИ*\n\n"
+                f"Тип: Фото без подписи\n\n"
+                f"Отправить это фото всем пользователям?",
+                reply_markup=keyboard,
+                parse_mode="Markdown"
+            )
+            
+            context.user_data["broadcast_caption"] = ""
+    
+    elif broadcast_type == "document":
+        # Рассылка с документом
+        if update.message.document:
+            # Сохраняем document_id
+            document = update.message.document
+            context.user_data["broadcast_document_id"] = document.file_id
+            context.user_data["broadcast_document_name"] = document.file_name
+            
+            await update.message.reply_text(
+                "✅ Документ получен. Теперь отправьте подпись к документу "
+                "(или /skip чтобы оставить без подписки):"
+            )
+            return SEND_BROADCAST
+        elif update.message.text and update.message.text.strip() != "/skip":
+            # Это подпись к документу
+            caption = update.message.text
+            
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("✅ Да, отправить всем", callback_data="confirm_broadcast")],
+                [InlineKeyboardButton("❌ Нет, отменить", callback_data="cancel_broadcast")]
+            ])
+            
+            doc_name = context.user_data.get("broadcast_document_name", "документ")
+            
+            await update.message.reply_text(
+                f"📎 *ПРЕДПРОСМОТР РАССЫЛКИ*\n\n"
+                f"Тип: Документ с подписью\n"
+                f"Файл: {doc_name}\n"
+                f"Длина подписи: {len(caption)} символов\n\n"
+                f"Отправить этот документ всем пользователям?",
+                reply_markup=keyboard,
+                parse_mode="Markdown"
+            )
+            
+            context.user_data["broadcast_caption"] = caption
+            
+        elif update.message.text and update.message.text.strip() == "/skip":
+            # Без подписи
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("✅ Да, отправить всем", callback_data="confirm_broadcast")],
+                [InlineKeyboardButton("❌ Нет, отменить", callback_data="cancel_broadcast")]
+            ])
+            
+            doc_name = context.user_data.get("broadcast_document_name", "документ")
+            
+            await update.message.reply_text(
+                f"📎 *ПРЕДПРОСМОТР РАССЫЛКИ*\n\n"
+                f"Тип: Документ без подписи\n"
+                f"Файл: {doc_name}\n\n"
+                f"Отправить этот документ всем пользователям?",
+                reply_markup=keyboard,
+                parse_mode="Markdown"
+            )
+            
+            context.user_data["broadcast_caption"] = ""
+    
+    return SEND_BROADCAST
+
+async def confirm_broadcast_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    
+    user_id = update.effective_user.id
+    broadcast_type = context.user_data.get("broadcast_type", "text")
+    
+    # Получаем chat_id всех пользователей
+    # ВАЖНО: Нужно хранить chat_id в базе данных!
+    # Временное решение: используем leads.csv (хотя там нет chat_id)
+    
+    # Для демонстрации отправляем себе
+    chat_ids = [user_id]  # Только админу для теста
+    
+    # В реальности должно быть так:
+    # chat_ids = await get_all_chat_ids(context.bot)
+    
+    total = len(chat_ids)
+    successful = 0
+    failed = 0
+    
+    await query.edit_message_text(f"🔄 Начинаю рассылку... Получателей: {total}")
+    
+    for chat_id in chat_ids:
+        try:
+            if broadcast_type == "text":
+                content = context.user_data.get("broadcast_content", "")
+                await context.bot.send_message(
+                    chat_id=chat_id,
+                    text=content,
+                    parse_mode="Markdown"
+                )
+                successful += 1
+                
+            elif broadcast_type == "photo":
+                photo_id = context.user_data.get("broadcast_photo_id")
+                caption = context.user_data.get("broadcast_caption", "")
+                await context.bot.send_photo(
+                    chat_id=chat_id,
+                    photo=photo_id,
+                    caption=caption,
+                    parse_mode="Markdown"
+                )
+                successful += 1
+                
+            elif broadcast_type == "document":
+                document_id = context.user_data.get("broadcast_document_id")
+                caption = context.user_data.get("broadcast_caption", "")
+                await context.bot.send_document(
+                    chat_id=chat_id,
+                    document=document_id,
+                    caption=caption,
+                    parse_mode="Markdown"
+                )
+                successful += 1
+            
+            # Задержка между сообщениями, чтобы не превысить лимиты
+            import asyncio
+            await asyncio.sleep(0.1)
+            
+        except Exception as e:
+            failed += 1
+            logger.error(f"Ошибка отправки сообщения {chat_id}: {e}")
+    
+    # Отчет о рассылке
+    report = (
+        f"📊 *ОТЧЕТ О РАССЫЛКЕ*\n\n"
+        f"Тип: {broadcast_type.upper()}\n"
+        f"Всего получателей: {total}\n"
+        f"✅ Успешно: {successful}\n"
+        f"❌ Не удалось: {failed}\n"
+        f"📅 Время: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+    )
+    
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("← Назад в админ-панель", callback_data="back_to_admin")]
+    ])
+    
+    await query.edit_message_text(
+        text=report,
+        reply_markup=keyboard,
+        parse_mode="Markdown"
+    )
+    
+    # Очищаем данные рассылки
+    context.user_data.pop("broadcast_type", None)
+    context.user_data.pop("broadcast_content", None)
+    context.user_data.pop("broadcast_photo_id", None)
+    context.user_data.pop("broadcast_document_id", None)
+    context.user_data.pop("broadcast_caption", None)
+    
+    return ConversationHandler.END
+
+async def cancel_broadcast_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    
+    # Очищаем данные рассылки
+    context.user_data.pop("broadcast_type", None)
+    context.user_data.pop("broadcast_content", None)
+    context.user_data.pop("broadcast_photo_id", None)
+    context.user_data.pop("broadcast_document_id", None)
+    context.user_data.pop("broadcast_caption", None)
+    
+    await query.edit_message_text(
+        "❌ Рассылка отменена.",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("← Назад в админ-панель", callback_data="back_to_admin")]
+        ])
+    )
+    
+    return ConversationHandler.END
 
 # --- Редактирование текста программы ---
 async def admin_edit_product_text_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):

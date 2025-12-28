@@ -33,6 +33,14 @@ from handlers.admin import (
     receive_guide_file,
     count_handler,
     cancel as admin_cancel,
+    admin_broadcast_callback,
+    broadcast_text_callback,
+    broadcast_photo_callback,
+    broadcast_document_callback,
+    process_broadcast,
+    confirm_broadcast_callback,
+    cancel_broadcast_callback,
+    SEND_BROADCAST,
     ASK_LEADS_COUNT,
     AWAIT_GUIDE_FILE,
     EDIT_PRODUCT_TEXT,
@@ -158,6 +166,23 @@ def main():
         allow_reentry=True
     )
 
+    broadcast_conversation = ConversationHandler(
+        entry_points=[
+            CallbackQueryHandler(broadcast_text_callback, pattern="^broadcast_text$"),
+            CallbackQueryHandler(broadcast_photo_callback, pattern="^broadcast_photo$"),
+            CallbackQueryHandler(broadcast_document_callback, pattern="^broadcast_document$")
+        ],
+        states={
+            SEND_BROADCAST: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, process_broadcast),
+                MessageHandler(filters.PHOTO & ~filters.COMMAND, process_broadcast),
+                MessageHandler(filters.Document.ALL & ~filters.COMMAND, process_broadcast)
+            ]
+        },
+        fallbacks=[CommandHandler("cancel", admin_cancel)],
+        allow_reentry=True
+    )
+
     app.add_handler(CommandHandler("start", start_handler))
     app.add_handler(CommandHandler("menu", start_handler))
     app.add_handler(CommandHandler("albina", albina_handler))
@@ -189,6 +214,13 @@ def main():
     app.add_handler(CallbackQueryHandler(back_to_admin_callback, pattern="^back_to_admin$"))
 
     app.add_handler(CallbackQueryHandler(edit_text_confirm_callback, pattern="^edit_text_confirm$"))
+
+    
+    app.add_handler(broadcast_conversation)
+    app.add_handler(CallbackQueryHandler(admin_broadcast_callback, pattern="^admin_broadcast$"))
+    app.add_handler(CallbackQueryHandler(confirm_broadcast_callback, pattern="^confirm_broadcast$"))
+    app.add_handler(CallbackQueryHandler(cancel_broadcast_callback, pattern="^cancel_broadcast$"))
+
 
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_main_menu))
     # Регистрируем глобальный обработчик ошибок
