@@ -121,14 +121,14 @@ async def admin_user_stats_callback(update: Update, context: ContextTypes.DEFAUL
     text = f"👥 *Статистика пользователей*\n\n"
     text += f"Всего активных пользователей: *{total_users}*\n\n"
     
-    if total_users > 0:
-        text += "*Последние 100 пользователей:*\n"
-        for i, user in enumerate(all_users[:100], 1):
-            name = f"{user['first_name'] or ''} {user['last_name'] or ''}".strip()
-            if not name:
-                name = "Без имени"
-            username = f" (@{user['username']})" if user['username'] else ""
-            text += f"{i}. {name}{username} - ID: {user['user_id']}\n"
+    # if total_users > 0:
+    #     text += "*Последние 100 пользователей:*\n"
+    #     for i, user in enumerate(all_users[:100], 1):
+    #         name = f"{user['first_name'] or ''} {user['last_name'] or ''}".strip()
+    #         if not name:
+    #             name = "Без имени"
+    #         username = f" (@{user['username']})" if user['username'] else ""
+    #         text += f"{i}. {name}{username} - ID: {user['user_id']}\n"
     
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton("📢 Сделать рассылку", callback_data="admin_broadcast")],
