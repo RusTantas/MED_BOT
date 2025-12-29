@@ -28,11 +28,16 @@ from .admin import (
     admin_count_now_callback,
     admin_export_csv_callback,
     admin_upload_guide_callback,
+    admin_user_stats_callback,
+    admin_broadcast_history_callback,
     admin_broadcast_callback,
     broadcast_text_callback,
     broadcast_photo_callback,
     broadcast_document_callback,
-    process_broadcast,
+    process_broadcast_text,
+    process_broadcast_photo,
+    process_broadcast_document,
+    process_broadcast_caption,
     confirm_broadcast_callback,
     cancel_broadcast_callback,
     process_leads_count,
@@ -41,7 +46,12 @@ from .admin import (
     cancel as admin_cancel,
     ASK_LEADS_COUNT,
     AWAIT_GUIDE_FILE,
-    SEND_BROADCAST
+    EDIT_PRODUCT_TEXT,
+    EDIT_PRICES,
+    SEND_BROADCAST,
+    BROADCAST_TEXT,
+    BROADCAST_PHOTO,
+    BROADCAST_DOCUMENT
 )
 
 from .product_details import (
@@ -69,8 +79,13 @@ __all__ = [
     'admin_count_now_callback', 'process_leads_count',
     'ASK_LEADS_COUNT', 'admin_export_csv_callback',
     'admin_upload_guide_callback', 'receive_guide_file',
+    'admin_user_stats_callback', 'admin_broadcast_history_callback',
     'admin_broadcast_callback', 'broadcast_text_callback',
     'broadcast_photo_callback', 'broadcast_document_callback',
-    'process_broadcast', 'confirm_broadcast_callback', 'cancel_broadcast_callback',
-    'SEND_BROADCAST', 'admin_cancel', 'show_tariff_new', 'show_tariff_month2', 'show_tariff_long'
+    'process_broadcast_text', 'process_broadcast_photo',
+    'process_broadcast_document', 'process_broadcast_caption',
+    'confirm_broadcast_callback', 'cancel_broadcast_callback',
+    'SEND_BROADCAST', 'BROADCAST_TEXT', 'BROADCAST_PHOTO', 'BROADCAST_DOCUMENT',
+    'EDIT_PRODUCT_TEXT', 'EDIT_PRICES',
+    'admin_cancel', 'show_tariff_new', 'show_tariff_month2', 'show_tariff_long'
 ]
