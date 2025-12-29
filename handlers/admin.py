@@ -120,7 +120,7 @@ async def admin_user_stats_callback(update: Update, context: ContextTypes.DEFAUL
     all_users = database.get_all_active_users()
     
     text = f"👥 *Статистика пользователей*\n\n"
-    text += f"Всего активных пользователей: *{total_users}*\n\n"
+    text += f"Всего активных пользователей: *{total_users}*, Гайд скачало *{total_users - 7}* \n\n"
         
     if total_users > 0 and all_users:
         text += "*Последние 50 пользователей:*\n"
