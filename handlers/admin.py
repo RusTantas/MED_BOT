@@ -121,40 +121,36 @@ async def admin_user_stats_callback(update: Update, context: ContextTypes.DEFAUL
     
     text = f"👥 *Статистика пользователей*\n\n"
     text += f"Всего активных пользователей: *{total_users}*\n\n"
-    
-    if total_users > 0:
-        text += "*Последние 100 пользователей:*\n"
-        for i, user in enumerate(all_users[:100], 1):
+        
+    if total_users > 0 and all_users:
+        text += "*Последние 50 пользователей:*\n"
+        for i, user in enumerate(all_users[:50], 1):
             # Экранируем специальные символы
             first_name = escape(str(user.get('first_name', '')))
             last_name = escape(str(user.get('last_name', '')))
             username = escape(str(user.get('username', ''))) if user.get('username') else ''
-            user_id = str(user.get('user_id', 'N/A'))
+            user_id_val = str(user.get('user_id', 'N/A'))
             
             name = f"{first_name} {last_name}".strip()
             if not name:
                 name = "Без имени"
             username_part = f" (@{username})" if username else ""
             
-            # Используем HTML-парсинг для безопасности
-            text += f"{i}. {name}{username_part} - ID: {user_id}\n"
-        
-        # Измените parse_mode на HTML
-        await query.edit_message_text(
-            text=text,
-            reply_markup=keyboard,
-            parse_mode="HTML"  # Измените с Markdown на HTML
-        )
+            text += f"{i}. {name}{username_part} - ID: {user_id_val}\n"
     
+    # Клавиатура создается ВСЕГДА
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton("📢 Сделать рассылку", callback_data="admin_broadcast")],
         [InlineKeyboardButton("← Назад в админ-панель", callback_data="back_to_admin")]
     ])
     
+    # Определяем parse_mode в зависимости от того, используем ли HTML
+    parse_mode = "HTML" if total_users > 0 and all_users else "Markdown"
+    
     await query.edit_message_text(
         text=text,
         reply_markup=keyboard,
-        parse_mode="Markdown"
+        parse_mode=parse_mode
     )
 
 # --- История рассылок ---
