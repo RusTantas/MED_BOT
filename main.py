@@ -211,8 +211,7 @@ def main():
     app.add_handler(CallbackQueryHandler(booking_handler, pattern="^booking$"))
     app.add_handler(CallbackQueryHandler(guide_handler, pattern="^guide$"))
     app.add_handler(CallbackQueryHandler(check_subscription_handler, pattern="^check_subscription$"))
-    app.add_handler(CallbackQueryHandler(download_guide_handler, pattern="^download_.*$"))
-
+    app.add_handler(CallbackQueryHandler(download_guide_handler, pattern="^dl:.*$"))
     app.add_handler(CallbackQueryHandler(admin_count_now_callback, pattern="^admin_count_now$"))
     app.add_handler(CallbackQueryHandler(admin_export_csv_callback, pattern="^admin_export_csv$"))
     app.add_handler(CallbackQueryHandler(admin_user_stats_callback, pattern="^admin_user_stats$"))
