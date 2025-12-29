@@ -53,9 +53,13 @@ async def show_guides_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text = "📚 *Доступные гайды:*\n\n"
         keyboard = []
         
+        # Сохраняем guides в context для доступа в download_guide_handler
+        context.user_data['guides'] = guides
+        
         for i, guide in enumerate(guides, 1):
             text += f"{i}. {guide['name']}\n"
-            callback_data = f"download_{guide['filename']}"
+            # Используем индекс вместо имени файла
+            callback_data = f"dl:{i-1}"  # dl = download, :i-1 = индекс (0-based)
             keyboard.append([InlineKeyboardButton(f"📥 {guide['name']}", callback_data=callback_data)])
         
         keyboard.append([InlineKeyboardButton("← Назад в меню", callback_data="back")])
@@ -71,7 +75,8 @@ async def show_guides_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 reply_markup=reply_markup,
                 parse_mode='Markdown'
             )
-        except Exception:
+        except Exception as e:
+            logger.error(f"Ошибка редактирования: {e}")
             await context.bot.send_message(
                 chat_id=chat_id,
                 text=text,
@@ -90,8 +95,27 @@ async def download_guide_handler(update: Update, context: ContextTypes.DEFAULT_T
     query = update.callback_query
     await query.answer() 
     
-    filename = query.data.replace("download_", "")
-    filepath = DATA_DIR / filename
+    # Получаем индекс из callback_data
+    data = query.data
+    if data.startswith("dl:"):
+        try:
+            guide_idx = int(data.split(":")[1])
+            guides = context.user_data.get('guides', [])
+            
+            if 0 <= guide_idx < len(guides):
+                guide = guides[guide_idx]
+                filename = guide['filename']
+                filepath = DATA_DIR / filename
+            else:
+                await query.answer("❌ Гайд не найден!", show_alert=True)
+                return
+        except (ValueError, IndexError):
+            await query.answer("❌ Ошибка данных!", show_alert=True)
+            return
+    else:
+        # Старая логика для обратной совместимости
+        filename = query.data.replace("download_", "")
+        filepath = DATA_DIR / filename
     
     if not filepath.exists():
         await query.answer("❌ Файл не найден!", show_alert=True)
@@ -106,9 +130,9 @@ async def download_guide_handler(update: Update, context: ContextTypes.DEFAULT_T
                 caption="✅ Вот ваш гайд! Приятного вам прочтения и активного долголетия."
             )
         
-
         await query.answer("✅ Гайд отправлен! Проверьте сообщения.", show_alert=False)
     except Exception as e:
+        logger.error(f"Ошибка отправки файла: {e}")
         await query.answer(f"❌ Ошибка: {str(e)[:50]}...", show_alert=True)
 
 async def check_subscription_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
