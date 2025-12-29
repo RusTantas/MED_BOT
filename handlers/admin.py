@@ -11,6 +11,7 @@ from telegram.ext import ContextTypes, ConversationHandler
 from logger import logger
 from config import PRODUCT_CONTENT_FILE, PRICES_FILE, BASE_PRODUCT_TEXT, BASE_PRICES
 import database  # Импортируем нашу базу данных
+from html import escape
 
 # --- Вспомогательная функция проверки админа ---
 def is_admin(user_id: int) -> bool:
@@ -121,14 +122,29 @@ async def admin_user_stats_callback(update: Update, context: ContextTypes.DEFAUL
     text = f"👥 *Статистика пользователей*\n\n"
     text += f"Всего активных пользователей: *{total_users}*\n\n"
     
-    # if total_users > 0:
-    #     text += "*Последние 100 пользователей:*\n"
-    #     for i, user in enumerate(all_users[:100], 1):
-    #         name = f"{user['first_name'] or ''} {user['last_name'] or ''}".strip()
-    #         if not name:
-    #             name = "Без имени"
-    #         username = f" (@{user['username']})" if user['username'] else ""
-    #         text += f"{i}. {name}{username} - ID: {user['user_id']}\n"
+    if total_users > 0:
+        text += "*Последние 100 пользователей:*\n"
+        for i, user in enumerate(all_users[:100], 1):
+            # Экранируем специальные символы
+            first_name = escape(str(user.get('first_name', '')))
+            last_name = escape(str(user.get('last_name', '')))
+            username = escape(str(user.get('username', ''))) if user.get('username') else ''
+            user_id = str(user.get('user_id', 'N/A'))
+            
+            name = f"{first_name} {last_name}".strip()
+            if not name:
+                name = "Без имени"
+            username_part = f" (@{username})" if username else ""
+            
+            # Используем HTML-парсинг для безопасности
+            text += f"{i}. {name}{username_part} - ID: {user_id}\n"
+        
+        # Измените parse_mode на HTML
+        await query.edit_message_text(
+            text=text,
+            reply_markup=keyboard,
+            parse_mode="HTML"  # Измените с Markdown на HTML
+        )
     
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton("📢 Сделать рассылку", callback_data="admin_broadcast")],
