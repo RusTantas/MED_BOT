@@ -122,8 +122,8 @@ async def admin_user_stats_callback(update: Update, context: ContextTypes.DEFAUL
     text += f"Всего активных пользователей: *{total_users}*\n\n"
     
     if total_users > 0:
-        text += "*Последние 10 пользователей:*\n"
-        for i, user in enumerate(all_users[:10], 1):
+        text += "*Последние 100 пользователей:*\n"
+        for i, user in enumerate(all_users[:100], 1):
             name = f"{user['first_name'] or ''} {user['last_name'] or ''}".strip()
             if not name:
                 name = "Без имени"
