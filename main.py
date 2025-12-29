@@ -63,13 +63,10 @@ from handlers import (
 import warnings
 from telegram.warnings import PTBUserWarning
 from logger import logger
-<<<<<<< HEAD
 import asyncio
 import time
 from telegram.error import NetworkError, RetryAfter, TimedOut
-=======
 import database  # Импортируем базу данных
->>>>>>> portotip-dev-1
 
 warnings.filterwarnings(
     "ignore",
