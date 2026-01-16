@@ -57,7 +57,8 @@ from handlers import (
     product_handler,
     show_tariff_new,
     show_tariff_month2,
-    show_tariff_long
+    show_tariff_long,
+    show_tariff_detox
 )
 
 import warnings
@@ -208,6 +209,7 @@ def main():
     app.add_handler(CallbackQueryHandler(show_tariff_new, pattern="^product_new$"))
     app.add_handler(CallbackQueryHandler(show_tariff_month2, pattern="^product_month2$"))
     app.add_handler(CallbackQueryHandler(show_tariff_long, pattern="^product_long$"))
+    app.add_handler(CallbackQueryHandler(show_tariff_detox, pattern="^tariff_detox$"))
     app.add_handler(CallbackQueryHandler(booking_handler, pattern="^booking$"))
     app.add_handler(CallbackQueryHandler(guide_handler, pattern="^guide$"))
     app.add_handler(CallbackQueryHandler(check_subscription_handler, pattern="^check_subscription$"))

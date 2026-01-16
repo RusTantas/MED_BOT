@@ -118,3 +118,32 @@ async def show_tariff_long(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=InlineKeyboardMarkup(keyboard),
         parse_mode="Markdown"
     )
+
+async def show_tariff_detox(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    context.user_data["selected_tariff"] = "Детокс неделя"
+    # prices = load_prices()
+    # detox_prices = prices.get("detox", BASE_PRICES["1_week"])
+
+    text = (
+        "🔹 *Детокс неделя*\n\n"
+        f"• Стоимость 2000₽\n\n"
+        "✔️ Длительность — 5 дней\n"
+        "✔️ Бонусом на 2 недели — доступ к легкой теории по нашим органам детокса\n\n"
+        "❗️ Только для моих пациентов или/и участников «Здорового тела».\n"
+        "❗️ Только для женщин.\n\n"
+        "Запись осуществляется с момента анонса в основной группе "
+        "[Доктор Гульназ Халимова ❤️](https://t.me/dr_halimova_gulnaz)"
+    )
+
+    keyboard = [
+        [InlineKeyboardButton("📩 Оставить заявку", callback_data="consent")],
+        [InlineKeyboardButton("← Назад к выбору", callback_data="product")]
+    ]
+    await query.edit_message_text(
+        text=text,
+        reply_markup=InlineKeyboardMarkup(keyboard),
+        parse_mode="Markdown",
+        disable_web_page_preview=True
+    )

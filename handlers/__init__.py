@@ -57,7 +57,9 @@ from .admin import (
 from .product_details import (
     show_tariff_new,
     show_tariff_month2,
-    show_tariff_long
+    show_tariff_long,
+    show_tariff_detox,
+
 )
 
 __all__ = [
@@ -87,5 +89,6 @@ __all__ = [
     'confirm_broadcast_callback', 'cancel_broadcast_callback',
     'SEND_BROADCAST', 'BROADCAST_TEXT', 'BROADCAST_PHOTO', 'BROADCAST_DOCUMENT',
     'EDIT_PRODUCT_TEXT', 'EDIT_PRICES',
-    'admin_cancel', 'show_tariff_new', 'show_tariff_month2', 'show_tariff_long'
+    'admin_cancel', 'show_tariff_new', 'show_tariff_month2', 'show_tariff_long',
+    'show_tariff_detox'
 ]

@@ -89,6 +89,9 @@ BASE_PRICES = {
         "2_weeks": 4000,
         "1_week": 2000
     },
+    "detox": {
+        "1_week": 2000
+    },
     "month2": {
         "4_weeks": 6500,
         "2_weeks": 3500,

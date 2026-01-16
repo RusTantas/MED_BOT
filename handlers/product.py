@@ -28,6 +28,7 @@ async def product_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("1️⃣ Впервые в программе", callback_data="product_new")],
         [InlineKeyboardButton("2️⃣ Продолжаю 2‑й месяц", callback_data="product_month2")],
         [InlineKeyboardButton("3️⃣ Уже 2+ месяца", callback_data="product_long")],
+        [InlineKeyboardButton("🌿 Детокс неделя", callback_data="tariff_detox")],
         [InlineKeyboardButton("← Назад в меню", callback_data="back")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
