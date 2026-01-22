@@ -40,7 +40,9 @@ async def show_tariff_new(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "✔️ Сопровождение в группе\n"
         "✔️ Обратная связь по дневникам питания\n"
         "✔️ Ответы на вопросы в установленное время (будни)\n"
-        "✔️ Анализ опросника и индивидуальные рекомендации"
+        "✔️ Анализ опросника и индивидуальные рекомендации\n\n"
+        "Ознакомиться с документами можно "
+        " [здесь ❗️](https://taplink.cc/dr_gulnaz_halimova)"
     )
     
     keyboard = [
@@ -71,7 +73,9 @@ async def show_tariff_month2(update: Update, context: ContextTypes.DEFAULT_TYPE)
         "*Включено:*\n"
         "✔️ Открыт второй информационный блок\n"
         "✔️ Доступ к нему сохраняется\n"
-        "✔️ Сопровождение и формат работы — как в первый месяц"
+        "✔️ Сопровождение и формат работы — как в первый месяц\n\n"
+        "Ознакомиться с документами можно "
+        " [здесь ❗️](https://taplink.cc/dr_gulnaz_halimova)"
     )
     
     keyboard = [
@@ -106,7 +110,9 @@ async def show_tariff_long(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "✔️ Контроль рациона и ответы на вопросы\n"
         f"• 4 недели — {format_price(long_prices['option2']['4_weeks'])} ₽\n"
         f"• 2 недели — {format_price(long_prices['option2']['2_weeks'])} ₽\n"
-        f"• 1 неделя — {format_price(long_prices['option2']['1_week'])} ₽"
+        f"• 1 неделя — {format_price(long_prices['option2']['1_week'])} ₽\n\n"
+        "Ознакомиться с документами можно "
+        " [здесь ❗️](https://taplink.cc/dr_gulnaz_halimova)"
     )
     
     keyboard = [
@@ -134,7 +140,9 @@ async def show_tariff_detox(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "❗️ Только для моих пациентов или/и участников «Здорового тела».\n"
         "❗️ Только для женщин.\n\n"
         "Запись осуществляется с момента анонса в основной группе "
-        "[Доктор Гульназ Халимова ❤️](https://t.me/dr_halimova_gulnaz)"
+        "[Доктор Гульназ Халимова ❤️](https://t.me/dr_halimova_gulnaz)\n\n"
+        "Ознакомиться с документами можно "
+        " [здесь ❗️](https://taplink.cc/dr_gulnaz_halimova)"
     )
 
     keyboard = [
