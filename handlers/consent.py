@@ -226,7 +226,7 @@ async def consent_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text=(
                 "✅ Спасибо! Ваши данные сохранены.\n"
                 f"Выбранная программа: *{tariff}*.\n"
-                "С вами скоро свяжутся."
+                "С Вами скоро свяжутся."
             ),
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("← Назад в меню", callback_data="back")]
