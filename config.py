@@ -85,28 +85,28 @@ BASE_PRODUCT_TEXT = (
 # Базовые цены (будут использоваться, если файл не найден)
 BASE_PRICES = {
     "new": {
-        "4_weeks": 7000,
-        "2_weeks": 4000,
-        "1_week": 2000
+        "4_weeks": 7500,
+        "2_weeks": 4500,
+        "1_week": 2500
     },
     "detox": {
         "1_week": 2000
     },
     "month2": {
-        "4_weeks": 6500,
-        "2_weeks": 3500,
-        "1_week": 1800
+        "4_weeks": 7000,
+        "2_weeks": 4000,
+        "1_week": 2200
     },
     "long": {
         "option1": {
-            "4_weeks": 4000,
-            "2_weeks": 2500,
-            "1_week": 1500
+            "4_weeks": 4500,
+            "2_weeks": 3000,
+            "1_week": 2000
         },
         "option2": {
-            "4_weeks": 5500,
-            "2_weeks": 3500,
-            "1_week": 2000
+            "4_weeks": 6500,
+            "2_weeks": 4500,
+            "1_week": 3000
         }
     }
 }
