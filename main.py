@@ -1,8 +1,9 @@
 import os
 from dotenv import load_dotenv
 from telegram import Update
+from telegram.request import HTTPXRequest
 from telegram.ext import (
-    Application, CommandHandler, CallbackQueryHandler,
+    Application, ApplicationBuilder,  CommandHandler, CallbackQueryHandler,
     ConversationHandler, MessageHandler, filters
 )
 
@@ -101,8 +102,18 @@ def global_exception_handler(update, context):
 def main():
     # Инициализация базы данных
     database.init_database()
+
+    # Настройка proxy
+    proxy_url = os.getenv("TELEGRAM_PROXY")
+    request_kwargs = {"proxy_url": proxy_url} if proxy_url else {}
     
-    app = Application.builder().token(os.getenv("BOT_TOKEN")).build()
+    app = (
+    ApplicationBuilder()
+    .token(os.getenv("BOT_TOKEN"))
+    .request(HTTPXRequest(**request_kwargs))
+    .get_updates_request(HTTPXRequest(**request_kwargs))
+    .build()
+    )
 
     consent_conv = ConversationHandler(
         entry_points=[CallbackQueryHandler(consent_start, pattern="^consent$")],
