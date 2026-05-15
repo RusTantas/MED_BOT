@@ -1,11 +1,15 @@
 import os
+import warnings
 from dotenv import load_dotenv
 from telegram import Update
 from telegram.request import HTTPXRequest
 from telegram.ext import (
-    Application, ApplicationBuilder,  CommandHandler, CallbackQueryHandler,
+    ApplicationBuilder, CommandHandler, CallbackQueryHandler,
     ConversationHandler, MessageHandler, filters
 )
+from telegram.warnings import PTBUserWarning
+from logger import logger
+import database
 
 from handlers.start import start_handler
 from handlers.consent import (
@@ -14,7 +18,6 @@ from handlers.consent import (
     consent_restart, cancel,
     FULL_NAME, PHONE, EMAIL, CONFIRM
 )
-
 from handlers.admin import (
     albina_handler,
     admin_ask_leads_callback,
@@ -44,7 +47,6 @@ from handlers.admin import (
     BROADCAST_PHOTO,
     BROADCAST_DOCUMENT
 )
-
 from handlers import (
     handle_main_menu,
     about_handler,
@@ -55,20 +57,11 @@ from handlers import (
     check_subscription_handler,
     download_guide_handler,
     show_guides_list,
-    product_handler,
     show_tariff_new,
     show_tariff_month2,
     show_tariff_long,
     show_tariff_detox
 )
-
-import warnings
-from telegram.warnings import PTBUserWarning
-from logger import logger
-import asyncio
-# import time
-from telegram.error import NetworkError, RetryAfter, TimedOut
-import database  # Импортируем базу данных
 
 warnings.filterwarnings(
     "ignore",
@@ -79,23 +72,21 @@ warnings.filterwarnings(
 load_dotenv()
 
 # Настройка глобального exception handler'а
-def global_exception_handler(update, context):
+async def global_exception_handler(update, context):
     logger.error(
         "Unhandled exception occurred",
         exc_info=context.error,
         extra={"update": update.to_dict() if update else None}
     )
     
-    # Опционально: отправить админам сообщение об ошибке
     try:
-        import os
         admin_ids = [int(x) for x in os.getenv("ADMIN_IDS", "").split(",") if x.strip()]
         error_msg = (
             f"🚨 *Критическая ошибка в боте*\n"
             f"```\n{str(context.error)[:1000]}\n```"
         )
         for admin_id in admin_ids:
-            context.bot.send_message(chat_id=admin_id, text=error_msg, parse_mode="Markdown")
+            await context.bot.send_message(chat_id=admin_id, text=error_msg, parse_mode="Markdown")
     except Exception as e:
         logger.warning(f"Failed to notify admins: {e}")
 
@@ -103,10 +94,11 @@ def main():
     # Инициализация базы данных
     database.init_database()
 
-    # Настройка proxy
     proxy_url = os.getenv("TELEGRAM_PROXY")
-    request_kwargs = {"proxy_url": proxy_url} if proxy_url else {}
-    
+    request_kwargs = {"connect_timeout": 15, "read_timeout": 15, "write_timeout": 15}
+    if proxy_url:
+        request_kwargs["proxy"] = proxy_url
+
     app = (
     ApplicationBuilder()
     .token(os.getenv("BOT_TOKEN"))

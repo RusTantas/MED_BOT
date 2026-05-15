@@ -6,16 +6,15 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, ConversationHandler
 from logger import logger
 
-from config import CONSENT_TEXT
+from config import CONSENT_TEXT, LEADS_CSV, STORAGE_DIR
 
 # Состояния
 FULL_NAME, PHONE, EMAIL, CONFIRM = range(4)
 
-CSV_PATH = "./storage/leads.csv"
-os.makedirs("./storage", exist_ok=True)
+os.makedirs(STORAGE_DIR, exist_ok=True)
 
-if not os.path.exists(CSV_PATH):
-    with open(CSV_PATH, "w", newline="", encoding="utf-8") as f:
+if not os.path.exists(LEADS_CSV):
+    with open(LEADS_CSV, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow([
             "timestamp", 
@@ -216,7 +215,7 @@ async def consent_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
         telegram_username = data.get("telegram_username", "").strip()
         tariff = data.get("selected_tariff", "не указан")
 
-        with open(CSV_PATH, "a", newline="", encoding="utf-8") as f:
+        with open(LEADS_CSV, "a", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
             writer.writerow([timestamp, full_name, phone, email, telegram_username, tariff])
 

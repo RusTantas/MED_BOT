@@ -3,15 +3,15 @@ import os
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from config import PRICES_FILE, BASE_PRICES
+from logger import logger
 
 def load_prices():
-    """Загружает цены из файла"""
     try:
         if os.path.exists(PRICES_FILE):
             with open(PRICES_FILE, 'r', encoding='utf-8') as f:
                 return json.load(f)
     except Exception as e:
-        print(f"Ошибка загрузки цен: {e}")
+        logger.warning(f"Ошибка загрузки цен: {e}")
     
     return BASE_PRICES
 

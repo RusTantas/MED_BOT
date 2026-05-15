@@ -3,9 +3,9 @@ import os
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from config import PRODUCT_CONTENT_FILE, BASE_PRODUCT_TEXT
+from logger import logger
 
 def load_product_text():
-    """Загружает текст продукта из файла"""
     try:
         if os.path.exists(PRODUCT_CONTENT_FILE):
             with open(PRODUCT_CONTENT_FILE, 'r', encoding='utf-8') as f:
@@ -13,7 +13,7 @@ def load_product_text():
                 if content:
                     return content
     except Exception as e:
-        print(f"Ошибка загрузки текста продукта: {e}")
+        logger.warning(f"Ошибка загрузки текста продукта: {e}")
     
     return BASE_PRODUCT_TEXT
 

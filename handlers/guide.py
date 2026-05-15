@@ -2,10 +2,11 @@ import os
 from pathlib import Path
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
+from config import DATA_DIR as _DATA_DIR
 from logger import logger
 
-CHANNEL_ID = "@dr_halimova_gulnaz"  # 
-DATA_DIR = Path("data")
+CHANNEL_ID = "@dr_halimova_gulnaz"
+DATA_DIR = Path(_DATA_DIR)
 
 async def guide_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -152,9 +153,7 @@ async def download_guide_handler(update: Update, context: ContextTypes.DEFAULT_T
                     logger.error(f"FILE NOT FOUND! Checking alternatives...")
                     # Проверяем другие возможные пути
                     alt_paths = [
-                        Path("./data") / filename,
-                        Path("data") / filename,
-                        Path("/home/MED_BOT/MED_BOT/data") / filename,
+                        DATA_DIR / filename,
                     ]
                     for alt in alt_paths:
                         logger.info(f"  Alternative: {alt} -> exists: {alt.exists()}")
@@ -232,7 +231,7 @@ async def check_subscription(bot, user_id: int) -> bool:
         subscribed_statuses = ['member', 'administrator', 'creator']
         return member.status in subscribed_statuses
         
-    except Exception:
+    except Exception as e:
         logger.warning(f"⚠️ Не удалось проверить подписку user_id={user_id}: {e}")
         return False
 

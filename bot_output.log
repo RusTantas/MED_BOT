@@ -1,0 +1,2 @@
+2026-05-15 11:38:51 | INFO     | dr_halimova_bot:init_database:72 | База данных инициализирована: ./storage/users.db
+2026-05-15 11:38:51 | INFO     | dr_halimova_bot:main:232 | ✅ Бот запущен. Логирование активно.
