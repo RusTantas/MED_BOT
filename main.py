@@ -80,7 +80,7 @@ async def global_exception_handler(update, context):
     )
     
     try:
-        admin_ids = [int(x) for x in os.getenv("ADMIN_IDS", "").split(",") if x.strip()]
+        admin_ids = [int(x) for x in os.getenv("ERROR_NOTIFY_IDS", "").split(",") if x.strip()]
         error_msg = (
             f"🚨 *Критическая ошибка в боте*\n"
             f"```\n{str(context.error)[:1000]}\n```"
