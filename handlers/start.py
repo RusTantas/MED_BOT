@@ -5,9 +5,10 @@ from config import AUTHOR_NAME
 import database  # Импортируем нашу базу данных
 
 async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Сохраняем пользователя в базу данных
     user = update.effective_user
-    
+    if not user:
+        return
+
     user_data = {
         'id': user.id,
         'chat_id': update.effective_chat.id,  # Важно! Сохраняем chat_id
