@@ -1,5 +1,7 @@
 import os
 import warnings
+import httpx
+import telegram
 from dotenv import load_dotenv
 from telegram import Update
 from telegram.request import HTTPXRequest
@@ -10,6 +12,56 @@ from telegram.ext import (
 from telegram.warnings import PTBUserWarning
 from logger import logger
 import database
+
+
+def collect_proxies():
+    proxies = []
+    seen = set()
+    for key in sorted(os.environ.keys()):
+        if key.startswith("TELEGRAM_PROXY"):
+            p = os.getenv(key)
+            if p and p not in seen:
+                proxies.append(p)
+                seen.add(p)
+    return proxies
+
+
+class FailoverHTTPXRequest(HTTPXRequest):
+    def __init__(self, proxies=None, **kwargs):
+        self._all_proxies = proxies or []
+        self._proxy_index = 0
+        kwargs.pop("proxies", None)
+        if self._all_proxies:
+            kwargs["proxy"] = self._all_proxies[0]
+        super().__init__(**kwargs)
+
+    def _switch_to_next_proxy(self):
+        self._proxy_index = (self._proxy_index + 1) % len(self._all_proxies)
+        self._client_kwargs["proxies"] = self._all_proxies[self._proxy_index]
+        self._client = self._build_client()
+        logger.warning(f"🔄 Переключился на прокси #{self._proxy_index + 1}")
+
+    async def do_request(self, *args, **kwargs):
+        if not self._all_proxies:
+            return await super().do_request(*args, **kwargs)
+
+        retryable = (
+            telegram.error.NetworkError,
+            httpx.ConnectError,
+            httpx.RemoteProtocolError,
+            httpx.ReadError,
+            httpx.ConnectTimeout,
+        )
+
+        for attempt in range(len(self._all_proxies)):
+            try:
+                return await super().do_request(*args, **kwargs)
+            except retryable as e:
+                if attempt < len(self._all_proxies) - 1:
+                    self._switch_to_next_proxy()
+                else:
+                    raise
+        return await super().do_request(*args, **kwargs)
 
 from handlers.start import start_handler
 from handlers.consent import (
@@ -78,32 +130,42 @@ async def global_exception_handler(update, context):
         exc_info=context.error,
         extra={"update": update.to_dict() if update else None}
     )
-    
+
     try:
         admin_ids = [int(x) for x in os.getenv("ERROR_NOTIFY_IDS", "").split(",") if x.strip()]
+        if not admin_ids:
+            return
         error_msg = (
             f"🚨 *Критическая ошибка в боте*\n"
             f"```\n{str(context.error)[:1000]}\n```"
         )
-        for admin_id in admin_ids:
-            await context.bot.send_message(chat_id=admin_id, text=error_msg, parse_mode="Markdown")
+        async with httpx.AsyncClient(timeout=10) as client:
+            for admin_id in admin_ids:
+                try:
+                    await client.post(
+                        f"https://api.telegram.org/bot{os.getenv('BOT_TOKEN')}/sendMessage",
+                        json={"chat_id": admin_id, "text": error_msg, "parse_mode": "Markdown"},
+                    )
+                except Exception:
+                    pass
     except Exception as e:
         logger.warning(f"Failed to notify admins: {e}")
 
 def main():
-    # Инициализация базы данных
     database.init_database()
 
-    proxy_url = os.getenv("TELEGRAM_PROXY")
+    proxies = collect_proxies()
     request_kwargs = {"connect_timeout": 15, "read_timeout": 15, "write_timeout": 15}
-    if proxy_url:
-        request_kwargs["proxy"] = proxy_url
+
+    if proxies:
+        logger.info(f"Найдено прокси: {len(proxies)}. Первый: {proxies[0].split('@')[-1] if '@' in proxies[0] else proxies[0]}")
+        request_kwargs["proxies"] = proxies
 
     app = (
     ApplicationBuilder()
     .token(os.getenv("BOT_TOKEN"))
-    .request(HTTPXRequest(**request_kwargs))
-    .get_updates_request(HTTPXRequest(**request_kwargs))
+    .request(FailoverHTTPXRequest(**request_kwargs))
+    .get_updates_request(FailoverHTTPXRequest(**request_kwargs))
     .build()
     )
 
